@@ -153,6 +153,68 @@ Page {
                 }
             }
             
+            // Balance Prediction Panel
+            Rectangle {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.min(parent.width - 40, 500)
+                Layout.topMargin: 15
+                radius: 10
+                color: Material.color(Material.Teal, Material.Shade800) // Different color for distinction
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 15
+
+                    Label {
+                        text: "余额预测 (未来7天)"
+                        font.pixelSize: 18
+                        font.bold: true
+                        Layout.alignment: Qt.AlignHCenter
+                        color: "white"
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "预测余额:"
+                            font.pixelSize: 16
+                            color: "white"
+                        }
+                        Label {
+                            id: predictedBalanceLabel
+                            text: controller.accountViewModel.predictedBalance > 0 ?
+                                  "￥" + controller.accountViewModel.predictedBalance.toFixed(2) :
+                                  (controller.accountViewModel.isLoggedIn ? "点击下方按钮计算" : "N/A")
+                            font.pixelSize: 18
+                            font.bold: true
+                            color: controller.accountViewModel.predictedBalance > controller.accountViewModel.balance ? "#4caf50" : "#f44336" // Green if up, red if down
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignRight
+                        }
+                    }
+                    
+                    Button {
+                        text: "计算预测余额"
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: 180
+                        font.pixelSize: 14
+                        Material.background: Material.Orange
+                        enabled: controller.accountViewModel.isLoggedIn
+                        onClicked: {
+                            controller.accountViewModel.calculatePredictedBalance(7) // Predict for next 7 days
+                        }
+                        
+                        Component.onCompleted: {
+                            // Optionally, calculate prediction when page loads if user is logged in
+                            if (controller.accountViewModel.isLoggedIn) {
+                               // controller.accountViewModel.calculatePredictedBalance(7)
+                            }
+                        }
+                    }
+                }
+            }
+            
             // 按钮使用FlowLayout，在小屏幕上自动换行
             Flow {
                 Layout.alignment: Qt.AlignHCenter

@@ -16,16 +16,20 @@ set(SOURCE_FILES
     src/AppController.cpp
     src/models/AccountModel.cpp
     src/models/TransactionModel.cpp
+    src/models/PrinterModel.cpp
     src/viewmodels/AccountViewModel.cpp
     src/viewmodels/TransactionViewModel.cpp
+    src/viewmodels/PrinterViewModel.cpp
 )
 
 set(HEADER_FILES
     src/AppController.h
     src/models/AccountModel.h
     src/models/TransactionModel.h
+    src/models/PrinterModel.h
     src/viewmodels/AccountViewModel.h
     src/viewmodels/TransactionViewModel.h
+    src/viewmodels/PrinterViewModel.h
 )
 
 set(RESOURCE_FILES

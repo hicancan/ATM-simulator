@@ -1,10 +1,12 @@
 #include "AccountViewModel.h"
 #include <QDateTime>
+#include <QDebug>
 
 AccountViewModel::AccountViewModel(QObject *parent)
     : QObject(parent)
     , m_transactionModel(nullptr)
     , m_isLoggedIn(false)
+    , m_predictedBalance(0.0)
 {
 }
 
@@ -23,6 +25,12 @@ void AccountViewModel::setCardNumber(const QString &cardNumber)
     if (m_cardNumber != cardNumber) {
         m_cardNumber = cardNumber;
         emit cardNumberChanged();
+        
+        // Reset predicted balance when card number changes
+        if (m_predictedBalance != 0.0) {
+            m_predictedBalance = 0.0;
+            emit predictedBalanceChanged();
+        }
     }
 }
 
@@ -344,6 +352,11 @@ void AccountViewModel::logout()
         recordTransaction(TransactionType::Other, 0.0, balance(), "登出系统");
         
         emit isLoggedInChanged();
+        // Reset predicted balance on logout
+        if (m_predictedBalance != 0.0) {
+            m_predictedBalance = 0.0;
+            emit predictedBalanceChanged();
+        }
         emit loggedOut();
     }
 }
@@ -381,4 +394,36 @@ void AccountViewModel::setErrorMessage(const QString &message)
 {
     m_errorMessage = message;
     emit errorMessageChanged();
+}
+
+double AccountViewModel::predictedBalance() const
+{
+    return m_predictedBalance;
+}
+
+void AccountViewModel::calculatePredictedBalance(int daysInFuture)
+{
+    if (!m_isLoggedIn || m_cardNumber.isEmpty()) {
+        qWarning() << "User not logged in or card number is empty. Cannot calculate predicted balance.";
+        if (m_predictedBalance != 0.0) { // Reset if previously set
+             m_predictedBalance = 0.0;
+             emit predictedBalanceChanged();
+        }
+        return;
+    }
+    
+    if (!m_transactionModel) {
+        qWarning() << "TransactionModel is not set in AccountViewModel.";
+        if (m_predictedBalance != 0.0) { // Reset if previously set
+             m_predictedBalance = 0.0;
+             emit predictedBalanceChanged();
+        }
+        return;
+    }
+
+    double newPredictedBalance = m_accountModel.predictBalance(m_cardNumber, m_transactionModel, daysInFuture);
+    if (m_predictedBalance != newPredictedBalance) {
+        m_predictedBalance = newPredictedBalance;
+        emit predictedBalanceChanged();
+    }
 } 

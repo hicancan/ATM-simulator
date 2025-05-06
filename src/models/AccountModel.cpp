@@ -2,6 +2,8 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QDebug>
+#include <numeric> // Required for std::accumulate
+#include <algorithm> // Required for std::min
 
 AccountModel::AccountModel(QObject *parent)
     : QObject(parent)
@@ -300,4 +302,66 @@ bool AccountModel::loadAccounts(const QString &filename)
     
     qDebug() << "成功从" << filePath << "加载" << m_accounts.size() << "个账户";
     return true;
+}
+
+double AccountModel::predictBalance(const QString &cardNumber, const TransactionModel* transactionModel, int daysInFuture) const
+{
+    if (!transactionModel) {
+        qWarning() << "TransactionModel is null, cannot predict balance.";
+        return getBalance(cardNumber); // Return current balance if no transaction model
+    }
+
+    QVector<Transaction> transactions = transactionModel->getTransactionsForCard(cardNumber);
+    if (transactions.size() < 2) {
+        qWarning() << "Not enough transactions to predict balance for card:" << cardNumber;
+        return getBalance(cardNumber); // Return current balance if not enough data
+    }
+
+    // Sort transactions by date just in case they are not already sorted
+    std::sort(transactions.begin(), transactions.end(), [](const Transaction& a, const Transaction& b) {
+        return a.timestamp < b.timestamp;
+    });
+
+    // Use the last N transactions for a more relevant trend (e.g., last 10 or all if fewer)
+    int N = std::min(10, transactions.size());
+    if (N < 2) return getBalance(cardNumber);
+
+    QVector<double> balanceChanges;
+    QVector<long long> timeDiffsSeconds; // Time differences in seconds
+
+    for (int i = transactions.size() - N + 1; i < transactions.size(); ++i) {
+        balanceChanges.append(transactions[i].balanceAfter - transactions[i-1].balanceAfter);
+        timeDiffsSeconds.append(transactions[i].timestamp.toSecsSinceEpoch() - transactions[i-1].timestamp.toSecsSinceEpoch());
+    }
+
+    if (balanceChanges.isEmpty() || timeDiffsSeconds.isEmpty()) {
+        return getBalance(cardNumber);
+    }
+
+    double totalBalanceChange = std::accumulate(balanceChanges.constBegin(), balanceChanges.constEnd(), 0.0);
+    long long totalTimeDiffSeconds = std::accumulate(timeDiffsSeconds.constBegin(), timeDiffsSeconds.constEnd(), 0LL);
+
+    if (totalTimeDiffSeconds == 0) {
+        // Avoid division by zero if all transactions happened at the exact same second (unlikely but possible)
+        return transactions.last().balanceAfter; 
+    }
+
+    // Average change per second
+    double averageChangePerSecond = totalBalanceChange / totalTimeDiffSeconds;
+    
+    // Average daily change
+    double averageDailyChange = averageChangePerSecond * (24 * 60 * 60);
+
+    double currentBalance = transactions.last().balanceAfter;
+    double predictedBalance = currentBalance + (averageDailyChange * daysInFuture);
+
+    qDebug() << "Predicting balance for card:" << cardNumber;
+    qDebug() << "Current Balance:" << currentBalance;
+    qDebug() << "Number of transactions used for trend:" << N-1;
+    qDebug() << "Total Balance Change:" << totalBalanceChange;
+    qDebug() << "Total Time Difference (seconds):" << totalTimeDiffSeconds;
+    qDebug() << "Average Daily Change:" << averageDailyChange;
+    qDebug() << "Predicted Balance in" << daysInFuture << "days:" << predictedBalance;
+
+    return predictedBalance;
 } 

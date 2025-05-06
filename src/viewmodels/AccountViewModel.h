@@ -11,6 +11,7 @@ class AccountViewModel : public QObject
     Q_PROPERTY(QString cardNumber READ cardNumber WRITE setCardNumber NOTIFY cardNumberChanged)
     Q_PROPERTY(QString holderName READ holderName NOTIFY holderNameChanged)
     Q_PROPERTY(double balance READ balance NOTIFY balanceChanged)
+    Q_PROPERTY(double predictedBalance READ predictedBalance NOTIFY predictedBalanceChanged)
     Q_PROPERTY(double withdrawLimit READ withdrawLimit NOTIFY withdrawLimitChanged)
     Q_PROPERTY(bool isLoggedIn READ isLoggedIn NOTIFY isLoggedInChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
@@ -23,6 +24,7 @@ public:
     Q_INVOKABLE void setCardNumber(const QString &cardNumber);
     QString holderName() const;
     double balance() const;
+    double predictedBalance() const;
     double withdrawLimit() const;
     bool isLoggedIn() const;
     QString errorMessage() const;
@@ -42,11 +44,13 @@ public:
     Q_INVOKABLE void logout();
     Q_INVOKABLE void clearError();
     Q_INVOKABLE void setErrorMessage(const QString &message);
+    Q_INVOKABLE void calculatePredictedBalance(int daysInFuture = 7);
 
 signals:
     void cardNumberChanged();
     void holderNameChanged();
     void balanceChanged();
+    void predictedBalanceChanged();
     void withdrawLimitChanged();
     void isLoggedInChanged();
     void errorMessageChanged();
@@ -60,6 +64,7 @@ private:
     QString m_cardNumber;
     QString m_errorMessage;
     bool m_isLoggedIn;
+    double m_predictedBalance;
     
     // Helper method to record transactions
     void recordTransaction(TransactionType type, double amount, double balanceAfter, const QString &description, const QString &targetCard = QString());

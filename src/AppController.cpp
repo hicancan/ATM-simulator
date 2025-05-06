@@ -1,6 +1,7 @@
 #include "AppController.h"
 #include "viewmodels/AccountViewModel.h"
 #include "viewmodels/TransactionViewModel.h"
+#include "viewmodels/PrinterViewModel.h"
 #include "models/TransactionModel.h"
 #include <QDebug>
 #include <QQmlComponent>
@@ -9,6 +10,7 @@ AppController::AppController(QObject *parent)
     : QObject(parent)
     , m_accountViewModel(new AccountViewModel(this))
     , m_transactionViewModel(new TransactionViewModel(this))
+    , m_printerViewModel(new PrinterViewModel(this))
 {
     // Connect signals
     connect(m_accountViewModel, &AccountViewModel::loggedOut, 
@@ -34,6 +36,7 @@ void AppController::initialize(QQmlEngine* engine)
     // Register types with QML
     qmlRegisterType<AccountViewModel>("ATMSimulator", 1, 0, "AccountViewModel");
     qmlRegisterType<TransactionViewModel>("ATMSimulator", 1, 0, "TransactionViewModel");
+    qmlRegisterType<PrinterViewModel>("ATMSimulator", 1, 0, "PrinterViewModel");
     
     // 确保组件目录被正确加载
     qDebug() << "组件路径: " << engine->importPathList();
@@ -53,6 +56,11 @@ AccountViewModel* AppController::accountViewModel() const
 TransactionViewModel* AppController::transactionViewModel() const
 {
     return m_transactionViewModel;
+}
+
+PrinterViewModel* AppController::printerViewModel() const
+{
+    return m_printerViewModel;
 }
 
 QString AppController::currentPage() const

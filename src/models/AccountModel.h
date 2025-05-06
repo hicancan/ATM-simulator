@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include "TransactionModel.h"
 
 // Account data structure
 struct Account {
@@ -62,6 +63,9 @@ public:
     double getWithdrawLimit(const QString &cardNumber) const;
     bool isAccountLocked(const QString &cardNumber) const;
     bool changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin);
+    
+    // Balance prediction
+    double predictBalance(const QString &cardNumber, const TransactionModel* transactionModel, int daysInFuture = 7) const;
     
     // For demonstration, these methods help manage the in-memory data
     void lockAccount(const QString &cardNumber, bool locked);

@@ -82,6 +82,48 @@ Item {
                pad(date.getSeconds());
     }
     
+    // 调用系统打印功能
+    function doPrintReceipt() {
+        var success = false;
+        
+        if (transactionType === "存款") {
+            success = controller.printerViewModel.printDepositReceipt(
+                bankName,
+                cardNumber,
+                holderName,
+                amount,
+                balanceAfter,
+                transactionId
+            );
+        } else if (transactionType === "取款") {
+            success = controller.printerViewModel.printWithdrawalReceipt(
+                bankName,
+                cardNumber,
+                holderName,
+                amount,
+                balanceAfter,
+                transactionId
+            );
+        } else if (transactionType === "转账") {
+            success = controller.printerViewModel.printTransferReceipt(
+                bankName,
+                cardNumber,
+                holderName,
+                amount,
+                balanceAfter,
+                targetCardNumber,
+                targetCardHolder,
+                transactionId
+            );
+        }
+        
+        if (success) {
+            printSuccessDialog.open();
+        } else {
+            printErrorDialog.open();
+        }
+    }
+    
     // 回单对话框
     Dialog {
         id: receiptDialog
@@ -199,9 +241,8 @@ Item {
                 text: "打印回单"
                 DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
                 onClicked: {
-                    // 在真实系统中这里会调用打印机接口
-                    // 这里只是模拟打印过程
-                    printSuccessDialog.open();
+                    // 调用实际的打印功能
+                    doPrintReceipt();
                 }
             }
             
@@ -229,6 +270,33 @@ Item {
             Button {
                 text: "确定"
                 DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+            }
+        }
+    }
+    
+    // 打印失败对话框
+    Dialog {
+        id: printErrorDialog
+        title: "打印失败"
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        
+        Label {
+            text: "回单打印失败，请检查打印机连接或纸张情况。"
+            anchors.centerIn: parent
+            padding: 20
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "重试"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                onClicked: doPrintReceipt()
+            }
+            
+            Button {
+                text: "取消"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
             }
         }
     }
