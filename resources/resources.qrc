@@ -1,0 +1,19 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>../qml/main.qml</file>
+        <file>../qml/LoginPage.qml</file>
+        <file>../qml/MainMenu.qml</file>
+        <file>../qml/WithdrawPage.qml</file>
+        <file>../qml/DepositPage.qml</file>
+        <file>../qml/BalancePage.qml</file>
+        <file>../qml/TransferPage.qml</file>
+        <file>../qml/TransactionHistoryPage.qml</file>
+        <file>../qml/ChangePasswordPage.qml</file>
+        <file>../qml/components/NumericKeypad.qml</file>
+        <file>../qml/components/TransactionButton.qml</file>
+        <file>../qml/components/HeaderBar.qml</file>
+        <file>../qml/components/ReceiptPrinter.qml</file>
+        <file>../qml/components/qmldir</file>
+    </qresource>
+</RCC> 

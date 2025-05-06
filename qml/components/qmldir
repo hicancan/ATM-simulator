@@ -1,0 +1,5 @@
+module Components
+ReceiptPrinter 1.0 ReceiptPrinter.qml
+NumericKeypad 1.0 NumericKeypad.qml
+HeaderBar 1.0 HeaderBar.qml
+TransactionButton 1.0 TransactionButton.qml 

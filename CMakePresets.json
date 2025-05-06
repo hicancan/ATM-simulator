@@ -1,0 +1,109 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 16,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "ninja-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}"
+        },
+        {
+            "name": "msvc-x64-base",
+            "inherits": "ninja-base",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "x64-debug",
+            "displayName": "MSVC x64 Debug [Ninja]",
+            "inherits": "msvc-x64-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_STANDARD": "17",
+                "CMAKE_PREFIX_PATH": "$env{Qt6_DIR}",
+                "Qt6_DIR": "D:/Qt/6.9.0/msvc2022_64/lib/cmake/Qt6"
+            }
+        },
+        {
+            "name": "x64-release",
+            "displayName": "MSVC x64 Release [Ninja]",
+            "inherits": "msvc-x64-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_CXX_STANDARD": "17",
+                "CMAKE_PREFIX_PATH": "$env{Qt6_DIR}",
+                "Qt6_DIR": "D:/Qt/6.9.0/msvc2022_64/lib/cmake/Qt6"
+            }
+        },
+        {
+            "name": "x64-relwithdebinfo",
+            "displayName": "MSVC x64 RelWithDebInfo [Ninja]",
+            "inherits": "msvc-x64-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_CXX_STANDARD": "17",
+                "CMAKE_PREFIX_PATH": "$env{Qt6_DIR}",
+                "Qt6_DIR": "D:/Qt/6.9.0/msvc2022_64/lib/cmake/Qt6"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "x64-debug",
+            "configurePreset": "x64-debug",
+            "displayName": "Debug Build"
+        },
+        {
+            "name": "x64-release",
+            "configurePreset": "x64-release",
+            "displayName": "Release Build"
+        },
+        {
+            "name": "x64-relwithdebinfo",
+            "configurePreset": "x64-relwithdebinfo",
+            "displayName": "RelWithDebInfo Build"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "x64-test-base",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "x64-debug-test",
+            "inherits": "x64-test-base",
+            "configurePreset": "x64-debug",
+            "displayName": "Test Debug"
+        },
+        {
+            "name": "x64-release-test",
+            "inherits": "x64-test-base",
+            "configurePreset": "x64-release",
+            "displayName": "Test Release"
+        }
+    ]
+}
