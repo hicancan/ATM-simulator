@@ -30,15 +30,16 @@ Page {
             bottom: parent.bottom
             left: parent.left
             right: parent.right
+            topMargin: 10
         }
         contentWidth: parent.width
-        contentHeight: contentColumn.height
         clip: true
         
         ColumnLayout {
             id: contentColumn
             width: parent.width
-            spacing: 20
+            spacing: 30
+            Layout.fillWidth: true
             
             // 顶部边距
             Item {
@@ -49,21 +50,22 @@ Page {
             // Account Info Panel
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: Math.min(parent.width - 40, 500)  // 响应式宽度
-                Layout.preferredHeight: 280  // 减小高度
+                Layout.preferredWidth: Math.min(parent.width - 40, 500)
                 Layout.leftMargin: 20
                 Layout.rightMargin: 20
                 radius: 10
                 color: Material.color(Material.BlueGrey, Material.Shade800)
+                implicitHeight: accountInfoColumn.implicitHeight + 40 // 动态高度
                 
                 ColumnLayout {
+                    id: accountInfoColumn
                     anchors.fill: parent
                     anchors.margins: 20
-                    spacing: 20  // 减少间距
+                    spacing: 15
                     
                     Label {
                         text: "账户详情"
-                        font.pixelSize: 22  // 减小字体
+                        font.pixelSize: 20
                         font.bold: true
                         Layout.alignment: Qt.AlignHCenter
                         color: "white"
@@ -75,75 +77,72 @@ Page {
                         color: Material.color(Material.Grey, Material.Shade400)
                     }
                     
-                    RowLayout {
+                    GridLayout {
                         Layout.fillWidth: true
+                        columns: 2
+                        columnSpacing: 10
+                        rowSpacing: 8
                         
-                        Label {
+                        Label { 
                             text: "持卡人: "
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16
                             color: "white"
+                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                         }
                         
-                        Label {
+                        Label { 
                             text: controller.accountViewModel.holderName
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16
                             font.bold: true
                             color: "white"
                             Layout.fillWidth: true
                             elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignLeft
                         }
-                    }
-                    
-                    RowLayout {
-                        Layout.fillWidth: true
                         
-                        Label {
+                        Label { 
                             text: "卡号: "
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16
                             color: "white"
+                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                         }
                         
-                        Label {
+                        Label { 
                             text: controller.accountViewModel.cardNumber
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16
                             font.bold: true
                             color: "white"
                             Layout.fillWidth: true
                             elide: Text.ElideRight
+                            horizontalAlignment: Text.AlignLeft
                         }
-                    }
-                    
-                    RowLayout {
-                        Layout.fillWidth: true
                         
-                        Label {
+                        Label { 
                             text: "可用余额: "
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16 
                             color: "white"
+                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                         }
                         
-                        Label {
+                        Label { 
                             text: "￥" + controller.accountViewModel.balance.toFixed(2)
-                            font.pixelSize: 22  // 减小字体
+                            font.pixelSize: 20
                             font.bold: true
                             color: "#4caf50"
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
                         }
-                    }
-                    
-                    RowLayout {
-                        Layout.fillWidth: true
                         
-                        Label {
+                        Label { 
                             text: "取款限额: "
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16
                             color: "white"
+                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                         }
                         
-                        Label {
+                        Label { 
                             text: "￥" + controller.accountViewModel.withdrawLimit.toFixed(2)
-                            font.pixelSize: 16  // 减小字体
+                            font.pixelSize: 16
                             font.bold: true
                             color: "#ff9800"
                             Layout.fillWidth: true
@@ -157,11 +156,14 @@ Page {
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: Math.min(parent.width - 40, 500)
-                Layout.topMargin: 15
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
                 radius: 10
-                color: Material.color(Material.Teal, Material.Shade800) // Different color for distinction
+                color: Material.color(Material.Teal, Material.Shade800)
+                implicitHeight: predictionColumn.implicitHeight + 40 // 动态高度
 
                 ColumnLayout {
+                    id: predictionColumn
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 15
@@ -174,94 +176,92 @@ Page {
                         color: "white"
                     }
 
-                    RowLayout {
+                    Rectangle {
                         Layout.fillWidth: true
-                        Label {
+                        height: 1
+                        color: Material.color(Material.Grey, Material.Shade400)
+                    }
+
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 2
+                        columnSpacing: 10
+                        
+                        Label { 
                             text: "预测余额:"
                             font.pixelSize: 16
                             color: "white"
+                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
                         }
+                        
                         Label {
                             id: predictedBalanceLabel
-                            text: controller.accountViewModel.predictedBalance > 0 ?
+                            text: controller.accountViewModel.predictedBalance > 0 || controller.accountViewModel.predictedBalance < 0 ?
                                   "￥" + controller.accountViewModel.predictedBalance.toFixed(2) :
                                   (controller.accountViewModel.isLoggedIn ? "点击下方按钮计算" : "N/A")
                             font.pixelSize: 18
                             font.bold: true
-                            color: controller.accountViewModel.predictedBalance > controller.accountViewModel.balance ? "#4caf50" : "#f44336" // Green if up, red if down
+                            color: controller.accountViewModel.predictedBalance > controller.accountViewModel.balance ? 
+                                   "#4caf50" : (controller.accountViewModel.predictedBalance < controller.accountViewModel.balance ? 
+                                   "#f44336" : "white")
                             Layout.fillWidth: true
                             horizontalAlignment: Text.AlignRight
                         }
+                    }
+                    
+                    Item {
+                        Layout.fillWidth: true
+                        height: 10
                     }
                     
                     Button {
                         text: "计算预测余额"
                         Layout.alignment: Qt.AlignHCenter
                         Layout.preferredWidth: 180
+                        Layout.preferredHeight: 40
                         font.pixelSize: 14
                         Material.background: Material.Orange
                         enabled: controller.accountViewModel.isLoggedIn
                         onClicked: {
-                            controller.accountViewModel.calculatePredictedBalance(7) // Predict for next 7 days
-                        }
-                        
-                        Component.onCompleted: {
-                            // Optionally, calculate prediction when page loads if user is logged in
-                            if (controller.accountViewModel.isLoggedIn) {
-                               // controller.accountViewModel.calculatePredictedBalance(7)
-                            }
+                            controller.accountViewModel.calculatePredictedBalance(7) 
                         }
                     }
                 }
             }
             
-            // 按钮使用FlowLayout，在小屏幕上自动换行
-            Flow {
+            // 操作按钮区域
+            GridLayout {
                 Layout.alignment: Qt.AlignHCenter
-                Layout.fillWidth: true
+                Layout.preferredWidth: Math.min(parent.width - 40, 500)
                 Layout.leftMargin: 20
                 Layout.rightMargin: 20
-                spacing: 20
-                
-                Button {
-                    text: "取款"
-                    width: 120
-                    height: 50
-                    font.pixelSize: 16
-                    
-                    onClicked: controller.switchToPage("WithdrawPage")
-                }
-                
-                Button {
-                    text: "存款"
-                    width: 120
-                    height: 50
-                    font.pixelSize: 16
-                    
-                    onClicked: controller.switchToPage("DepositPage")
-                }
-                
-                Button {
-                    text: "交易历史"
-                    width: 120
-                    height: 50
-                    font.pixelSize: 16
-                    Material.background: Material.Purple
-                    
-                    onClicked: controller.switchToPage("TransactionHistoryPage")
-                }
-                
-                Button {
-                    text: "返回主菜单"
-                    width: 120
-                    height: 50
-                    font.pixelSize: 16
-                    
-                    onClicked: controller.switchToPage("MainMenu")
+                Layout.topMargin: 10
+                Layout.bottomMargin: 30
+                columns: width < 400 ? 1 : 2 // 窄屏幕使用1列，宽屏幕使用2列
+                rowSpacing: 15
+                columnSpacing: 15
+
+                Repeater {
+                    model: [
+                        { "text": "取款", "page": "WithdrawPage", "color": Material.Green },
+                        { "text": "存款", "page": "DepositPage", "color": Material.Blue },
+                        { "text": "交易历史", "page": "TransactionHistoryPage", "color": Material.Purple },
+                        { "text": "返回主菜单", "page": "MainMenu", "color": Material.Grey }
+                    ]
+
+                    Button {
+                        text: modelData.text
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 50
+                        font.pixelSize: 16
+                        Material.background: Material.color(modelData.color)
+                        
+                        onClicked: controller.switchToPage(modelData.page)
+                    }
                 }
             }
             
-            // 底部边距
+            // 底部空间
             Item {
                 Layout.fillWidth: true
                 height: 20

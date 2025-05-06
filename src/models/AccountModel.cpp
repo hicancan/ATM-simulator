@@ -323,7 +323,8 @@ double AccountModel::predictBalance(const QString &cardNumber, const Transaction
     });
 
     // Use the last N transactions for a more relevant trend (e.g., last 10 or all if fewer)
-    int N = std::min(10, transactions.size());
+    // Explicitly cast one of the arguments to int to resolve ambiguity for std::min
+    int N = std::min(10, static_cast<int>(transactions.size()));
     if (N < 2) return getBalance(cardNumber);
 
     QVector<double> balanceChanges;
