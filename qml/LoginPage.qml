@@ -158,7 +158,7 @@ Page {
                 radius: 5
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: Math.min(parent.width - 40, 500)  // 响应式宽度
-                Layout.preferredHeight: 100
+                Layout.preferredHeight: 125 // 增加高度以适应新的管理员账户
                 Layout.leftMargin: 20
                 Layout.rightMargin: 20
                 
@@ -197,6 +197,17 @@ Page {
                         horizontalAlignment: Text.AlignHCenter
                         Layout.fillWidth: true
                         font.pixelSize: 14  // 减小字体
+                    }
+                    
+                    Label {
+                        text: "卡号: 9999888877776666   PIN: 8888   (管理员账户)"
+                        Layout.alignment: Qt.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Text.AlignHCenter
+                        Layout.fillWidth: true
+                        font.pixelSize: 14
+                        color: "#f44336" // 红色突出显示管理员账户
+                        font.bold: true
                     }
                 }
             }

@@ -18,6 +18,7 @@ struct Account {
     double balance;
     double withdrawLimit;
     bool isLocked;
+    bool isAdmin;
     
     // 转换为JSON对象
     QJsonObject toJson() const {
@@ -28,6 +29,7 @@ struct Account {
         json["balance"] = balance;
         json["withdrawLimit"] = withdrawLimit;
         json["isLocked"] = isLocked;
+        json["isAdmin"] = isAdmin;
         return json;
     }
     
@@ -40,6 +42,7 @@ struct Account {
         account.balance = json["balance"].toDouble();
         account.withdrawLimit = json["withdrawLimit"].toDouble();
         account.isLocked = json["isLocked"].toBool();
+        account.isAdmin = json.contains("isAdmin") ? json["isAdmin"].toBool() : false;
         return account;
     }
 };
@@ -66,6 +69,15 @@ public:
     
     // Balance prediction
     double predictBalance(const QString &cardNumber, const TransactionModel* transactionModel, int daysInFuture = 7) const;
+    
+    // 管理员相关方法
+    bool isAdmin(const QString &cardNumber) const;
+    QVector<Account> getAllAccounts() const;
+    bool createAccount(const Account &account);
+    bool updateAccount(const Account &account);
+    bool deleteAccount(const QString &cardNumber);
+    bool setAccountLockStatus(const QString &cardNumber, bool locked);
+    bool setWithdrawLimit(const QString &cardNumber, double limit);
     
     // For demonstration, these methods help manage the in-memory data
     void lockAccount(const QString &cardNumber, bool locked);

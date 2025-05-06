@@ -15,6 +15,7 @@ class AccountViewModel : public QObject
     Q_PROPERTY(double withdrawLimit READ withdrawLimit NOTIFY withdrawLimitChanged)
     Q_PROPERTY(bool isLoggedIn READ isLoggedIn NOTIFY isLoggedInChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
+    Q_PROPERTY(bool isAdmin READ isAdmin NOTIFY isAdminChanged)
 
 public:
     explicit AccountViewModel(QObject *parent = nullptr);
@@ -28,6 +29,7 @@ public:
     double withdrawLimit() const;
     bool isLoggedIn() const;
     QString errorMessage() const;
+    bool isAdmin() const;
     
     // Set the transaction model reference
     void setTransactionModel(TransactionModel *model);
@@ -45,6 +47,17 @@ public:
     Q_INVOKABLE void clearError();
     Q_INVOKABLE void setErrorMessage(const QString &message);
     Q_INVOKABLE void calculatePredictedBalance(int daysInFuture = 7);
+    
+    // 管理员方法
+    Q_INVOKABLE QVariantList getAllAccounts();
+    Q_INVOKABLE bool createAccount(const QString &cardNumber, const QString &pin, const QString &holderName, 
+                                 double balance, double withdrawLimit, bool isLocked, bool isAdmin);
+    Q_INVOKABLE bool updateAccount(const QString &cardNumber, const QString &holderName, 
+                                 double balance, double withdrawLimit, bool isLocked);
+    Q_INVOKABLE bool deleteAccount(const QString &cardNumber);
+    Q_INVOKABLE bool resetAccountPin(const QString &cardNumber, const QString &newPin);
+    Q_INVOKABLE bool setAccountLockStatus(const QString &cardNumber, bool locked);
+    Q_INVOKABLE bool setWithdrawLimit(const QString &cardNumber, double limit);
 
 signals:
     void cardNumberChanged();
@@ -54,9 +67,11 @@ signals:
     void withdrawLimitChanged();
     void isLoggedInChanged();
     void errorMessageChanged();
+    void isAdminChanged();
     void loggedOut();
     void transactionCompleted(bool success, const QString &message);
     void transactionRecorded();
+    void accountsChanged();
 
 private:
     AccountModel m_accountModel;
@@ -65,6 +80,7 @@ private:
     QString m_errorMessage;
     bool m_isLoggedIn;
     double m_predictedBalance;
+    bool m_isAdmin;
     
     // Helper method to record transactions
     void recordTransaction(TransactionType type, double amount, double balanceAfter, const QString &description, const QString &targetCard = QString());

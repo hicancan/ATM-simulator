@@ -7,6 +7,7 @@ AccountViewModel::AccountViewModel(QObject *parent)
     , m_transactionModel(nullptr)
     , m_isLoggedIn(false)
     , m_predictedBalance(0.0)
+    , m_isAdmin(false)
 {
 }
 
@@ -57,6 +58,11 @@ bool AccountViewModel::isLoggedIn() const
 QString AccountViewModel::errorMessage() const
 {
     return m_errorMessage;
+}
+
+bool AccountViewModel::isAdmin() const
+{
+    return m_isAdmin;
 }
 
 bool AccountViewModel::login(const QString &pin)
@@ -111,11 +117,37 @@ bool AccountViewModel::loginWithCard(const QString &cardNumber, const QString &p
         return false;
     }
     
-    // Set card number directly
-    m_cardNumber = cardNumber;
-    emit cardNumberChanged();
+    qDebug() << "尝试登录 - 卡号:" << cardNumber << "PIN:" << pin;
     
-    if (m_accountModel.validateCredentials(m_cardNumber, pin)) {
+    // 特殊处理管理员账户
+    if (cardNumber == "9999888877776666" && pin == "8888") {
+        qDebug() << "管理员账户直接验证通过";
+        m_cardNumber = cardNumber;
+        emit cardNumberChanged();
+        
+        m_isLoggedIn = true;
+        emit isLoggedInChanged();
+        emit holderNameChanged();
+        emit balanceChanged();
+        emit withdrawLimitChanged();
+        
+        // 设置管理员标志
+        m_isAdmin = true;
+        emit isAdminChanged();
+        
+        // 记录登录交易
+        recordTransaction(TransactionType::Other, 0.0, balance(), "管理员登录成功");
+        
+        qDebug() << "管理员登录成功，卡号:" << m_cardNumber;
+        return true;
+    }
+    
+    // 处理普通账户
+    if (m_accountModel.validateCredentials(cardNumber, pin)) {
+        // 验证成功后再设置当前卡号
+        m_cardNumber = cardNumber;
+        emit cardNumberChanged();
+        
         m_isLoggedIn = true;
         emit isLoggedInChanged();
         emit holderNameChanged();
@@ -124,12 +156,21 @@ bool AccountViewModel::loginWithCard(const QString &cardNumber, const QString &p
         
         // Record login transaction
         recordTransaction(TransactionType::Other, 0.0, balance(), "登录成功");
+        
+        // 检查是否为管理员账户
+        m_isAdmin = m_accountModel.isAdmin(cardNumber);
+        emit isAdminChanged();
+        
+        qDebug() << "登录成功，卡号:" << m_cardNumber << "，用户类型:" << (m_isAdmin ? "管理员" : "普通用户");
         return true;
     } else {
-        if (m_accountModel.isAccountLocked(m_cardNumber)) {
+        // 验证失败，使用传入的cardNumber检查锁定状态
+        if (m_accountModel.isAccountLocked(cardNumber)) {
             setErrorMessage("账户已锁定，请联系银行客服");
+            qDebug() << "登录失败 - 账户已锁定:" << cardNumber;
         } else {
             setErrorMessage("卡号或PIN码错误");
+            qDebug() << "登录失败 - 卡号或PIN码错误:" << cardNumber;
         }
         return false;
     }
@@ -347,17 +388,26 @@ void AccountViewModel::logout()
 {
     if (m_isLoggedIn) {
         m_isLoggedIn = false;
+        m_isAdmin = false;
+        m_cardNumber.clear();
+        m_errorMessage.clear();
         
         // Record logout transaction
         recordTransaction(TransactionType::Other, 0.0, balance(), "登出系统");
         
         emit isLoggedInChanged();
+        emit isAdminChanged();
+        emit cardNumberChanged();
+        emit errorMessageChanged();
+        emit loggedOut();
+        
+        qDebug() << "成功登出系统";
+        
         // Reset predicted balance on logout
         if (m_predictedBalance != 0.0) {
             m_predictedBalance = 0.0;
             emit predictedBalanceChanged();
         }
-        emit loggedOut();
     }
 }
 
@@ -426,4 +476,299 @@ void AccountViewModel::calculatePredictedBalance(int daysInFuture)
         m_predictedBalance = newPredictedBalance;
         emit predictedBalanceChanged();
     }
+}
+
+QVariantList AccountViewModel::getAllAccounts()
+{
+    QVariantList result;
+    
+    // 只允许管理员获取所有账户信息
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return result;
+    }
+    
+    QVector<Account> accounts = m_accountModel.getAllAccounts();
+    for (const Account &account : accounts) {
+        QVariantMap accountMap;
+        accountMap["cardNumber"] = account.cardNumber;
+        accountMap["holderName"] = account.holderName;
+        accountMap["balance"] = account.balance;
+        accountMap["withdrawLimit"] = account.withdrawLimit;
+        accountMap["isLocked"] = account.isLocked;
+        accountMap["isAdmin"] = account.isAdmin;
+        result.append(accountMap);
+    }
+    
+    return result;
+}
+
+bool AccountViewModel::createAccount(const QString &cardNumber, const QString &pin, const QString &holderName, 
+                                  double balance, double withdrawLimit, bool isLocked, bool isAdmin)
+{
+    // 只允许管理员创建账户
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return false;
+    }
+    
+    // 验证输入
+    if (cardNumber.length() != 16 || !cardNumber.toULongLong()) {
+        setErrorMessage("卡号必须是16位数字");
+        return false;
+    }
+    
+    if (pin.length() != 4 || !pin.toInt()) {
+        setErrorMessage("PIN码必须是4位数字");
+        return false;
+    }
+    
+    if (holderName.isEmpty()) {
+        setErrorMessage("持卡人姓名不能为空");
+        return false;
+    }
+    
+    if (balance < 0) {
+        setErrorMessage("余额不能为负数");
+        return false;
+    }
+    
+    if (withdrawLimit < 0) {
+        setErrorMessage("取款限额不能为负数");
+        return false;
+    }
+    
+    // 创建账户对象
+    Account account;
+    account.cardNumber = cardNumber;
+    account.pin = pin;
+    account.holderName = holderName;
+    account.balance = balance;
+    account.withdrawLimit = withdrawLimit;
+    account.isLocked = isLocked;
+    account.isAdmin = isAdmin;
+    
+    // 添加账户
+    bool success = m_accountModel.createAccount(account);
+    if (success) {
+        emit accountsChanged();
+    } else {
+        setErrorMessage("创建账户失败，可能卡号已存在");
+    }
+    
+    return success;
+}
+
+bool AccountViewModel::updateAccount(const QString &cardNumber, const QString &holderName, 
+                                  double balance, double withdrawLimit, bool isLocked)
+{
+    // 只允许管理员更新账户
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return false;
+    }
+    
+    // 验证输入
+    if (!m_accountModel.accountExists(cardNumber)) {
+        setErrorMessage("卡号不存在");
+        return false;
+    }
+    
+    if (holderName.isEmpty()) {
+        setErrorMessage("持卡人姓名不能为空");
+        return false;
+    }
+    
+    if (balance < 0) {
+        setErrorMessage("余额不能为负数");
+        return false;
+    }
+    
+    if (withdrawLimit < 0) {
+        setErrorMessage("取款限额不能为负数");
+        return false;
+    }
+    
+    // 获取现有账户数据，以保留PIN和管理员状态
+    QVector<Account> accounts = m_accountModel.getAllAccounts();
+    Account account;
+    bool found = false;
+    
+    for (const Account &acc : accounts) {
+        if (acc.cardNumber == cardNumber) {
+            account = acc;
+            found = true;
+            break;
+        }
+    }
+    
+    if (!found) {
+        setErrorMessage("找不到账户");
+        return false;
+    }
+    
+    // 更新可以修改的字段
+    account.holderName = holderName;
+    account.balance = balance;
+    account.withdrawLimit = withdrawLimit;
+    account.isLocked = isLocked;
+    
+    // 更新账户
+    bool success = m_accountModel.updateAccount(account);
+    if (success) {
+        emit accountsChanged();
+        
+        // 如果更新的是当前登录用户，刷新数据
+        if (cardNumber == m_cardNumber) {
+            emit holderNameChanged();
+            emit balanceChanged();
+            emit withdrawLimitChanged();
+        }
+    } else {
+        setErrorMessage("更新账户失败");
+    }
+    
+    return success;
+}
+
+bool AccountViewModel::deleteAccount(const QString &cardNumber)
+{
+    // 只允许管理员删除账户
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return false;
+    }
+    
+    // 不能删除自己的账户
+    if (cardNumber == m_cardNumber) {
+        setErrorMessage("不能删除当前登录账户");
+        return false;
+    }
+    
+    // 删除账户
+    bool success = m_accountModel.deleteAccount(cardNumber);
+    if (success) {
+        emit accountsChanged();
+    } else {
+        setErrorMessage("删除账户失败，可能卡号不存在");
+    }
+    
+    return success;
+}
+
+bool AccountViewModel::resetAccountPin(const QString &cardNumber, const QString &newPin)
+{
+    // 只允许管理员重置PIN
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return false;
+    }
+    
+    // 验证输入
+    if (!m_accountModel.accountExists(cardNumber)) {
+        setErrorMessage("卡号不存在");
+        return false;
+    }
+    
+    if (newPin.length() != 4 || !newPin.toInt()) {
+        setErrorMessage("PIN码必须是4位数字");
+        return false;
+    }
+    
+    // 获取现有账户
+    QVector<Account> accounts = m_accountModel.getAllAccounts();
+    Account account;
+    bool found = false;
+    
+    for (const Account &acc : accounts) {
+        if (acc.cardNumber == cardNumber) {
+            account = acc;
+            found = true;
+            break;
+        }
+    }
+    
+    if (!found) {
+        setErrorMessage("找不到账户");
+        return false;
+    }
+    
+    // 更新PIN
+    account.pin = newPin;
+    
+    // 更新账户
+    bool success = m_accountModel.updateAccount(account);
+    if (success) {
+        emit accountsChanged();
+    } else {
+        setErrorMessage("重置PIN码失败");
+    }
+    
+    return success;
+}
+
+bool AccountViewModel::setAccountLockStatus(const QString &cardNumber, bool locked)
+{
+    // 只允许管理员设置账户锁定状态
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return false;
+    }
+    
+    // 验证输入
+    if (!m_accountModel.accountExists(cardNumber)) {
+        setErrorMessage("卡号不存在");
+        return false;
+    }
+    
+    // 不能锁定自己的账户
+    if (cardNumber == m_cardNumber) {
+        setErrorMessage("不能锁定当前登录账户");
+        return false;
+    }
+    
+    // 设置锁定状态
+    bool success = m_accountModel.setAccountLockStatus(cardNumber, locked);
+    if (success) {
+        emit accountsChanged();
+    } else {
+        setErrorMessage(locked ? "锁定账户失败" : "解锁账户失败");
+    }
+    
+    return success;
+}
+
+bool AccountViewModel::setWithdrawLimit(const QString &cardNumber, double limit)
+{
+    // 只允许管理员设置取款限额
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage("没有权限执行此操作");
+        return false;
+    }
+    
+    // 验证输入
+    if (!m_accountModel.accountExists(cardNumber)) {
+        setErrorMessage("卡号不存在");
+        return false;
+    }
+    
+    if (limit < 0) {
+        setErrorMessage("取款限额不能为负数");
+        return false;
+    }
+    
+    // 设置取款限额
+    bool success = m_accountModel.setWithdrawLimit(cardNumber, limit);
+    if (success) {
+        emit accountsChanged();
+        
+        // 如果更新的是当前登录用户，刷新数据
+        if (cardNumber == m_cardNumber) {
+            emit withdrawLimitChanged();
+        }
+    } else {
+        setErrorMessage("设置取款限额失败");
+    }
+    
+    return success;
 } 

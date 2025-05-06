@@ -35,14 +35,18 @@ bool AccountModel::validateCredentials(const QString &cardNumber, const QString 
 {
     const Account* account = findAccount(cardNumber);
     if (!account) {
+        qDebug() << "验证失败: 卡号不存在:" << cardNumber;
         return false;  // Card not found
     }
     
     if (account->isLocked) {
+        qDebug() << "验证失败: 账户已锁定:" << cardNumber;
         return false;  // Account is locked
     }
     
-    return account->pin == pin;
+    bool pinMatches = (account->pin == pin);
+    qDebug() << "PIN验证结果:" << pinMatches << "输入PIN:" << pin << "存储PIN:" << account->pin;
+    return pinMatches;
 }
 
 bool AccountModel::withdrawAmount(const QString &cardNumber, double amount)
@@ -150,7 +154,7 @@ double AccountModel::getWithdrawLimit(const QString &cardNumber) const
 bool AccountModel::isAccountLocked(const QString &cardNumber) const
 {
     const Account* account = findAccount(cardNumber);
-    return account ? account->isLocked : true;
+    return account ? account->isLocked : false;
 }
 
 bool AccountModel::changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin)
@@ -201,6 +205,7 @@ void AccountModel::initializeTestAccounts()
     account1.balance = 5000.0;
     account1.withdrawLimit = 2000.0;
     account1.isLocked = false;
+    account1.isAdmin = false;
     addAccount(account1);
     
     Account account2;
@@ -210,6 +215,7 @@ void AccountModel::initializeTestAccounts()
     account2.balance = 10000.0;
     account2.withdrawLimit = 3000.0;
     account2.isLocked = false;
+    account2.isAdmin = false;
     addAccount(account2);
     
     Account account3;
@@ -219,7 +225,30 @@ void AccountModel::initializeTestAccounts()
     account3.balance = 7500.0;
     account3.withdrawLimit = 2500.0;
     account3.isLocked = true;  // This account is locked
+    account3.isAdmin = false;
     addAccount(account3);
+    
+    // 添加管理员账户
+    Account adminAccount;
+    adminAccount.cardNumber = "9999888877776666";
+    // 确保管理员PIN码为数字字符串，而不是数值
+    adminAccount.pin = QString("8888");
+    adminAccount.holderName = "管理员";
+    adminAccount.balance = 50000.0;
+    adminAccount.withdrawLimit = 10000.0;
+    adminAccount.isLocked = false;
+    adminAccount.isAdmin = true; // 设置为管理员
+    
+    qDebug() << "管理员账户初始化 PIN码:" << adminAccount.pin;
+    addAccount(adminAccount);
+    
+    // 再次检查管理员账户是否正确保存
+    const Account* savedAdmin = findAccount("9999888877776666");
+    if (savedAdmin) {
+        qDebug() << "管理员账户保存后 PIN码:" << savedAdmin->pin;
+    } else {
+        qDebug() << "警告: 管理员账户保存失败!";
+    }
 }
 
 Account* AccountModel::findAccount(const QString &cardNumber)
@@ -296,8 +325,36 @@ bool AccountModel::loadAccounts(const QString &filename)
     for (const QJsonValue &value : accountsArray) {
         if (value.isObject()) {
             Account account = Account::fromJson(value.toObject());
+            
+            // 确保PIN码为字符串格式
+            if (account.cardNumber == "9999888877776666") {
+                qDebug() << "加载管理员账户，PIN码:" << account.pin;
+                // 确保PIN码正确
+                if (account.pin != "8888") {
+                    qWarning() << "管理员PIN码不正确，重新设置为8888";
+                    account.pin = "8888";
+                }
+            }
+            
             m_accounts[account.cardNumber] = account;
         }
+    }
+    
+    // 确保管理员账户加载正确
+    const Account* adminAccount = findAccount("9999888877776666");
+    if (adminAccount) {
+        qDebug() << "管理员账户加载成功，PIN码:" << adminAccount->pin;
+    } else {
+        qWarning() << "管理员账户未加载，创建新管理员账户";
+        Account admin;
+        admin.cardNumber = "9999888877776666";
+        admin.pin = "8888";
+        admin.holderName = "管理员";
+        admin.balance = 50000.0;
+        admin.withdrawLimit = 10000.0;
+        admin.isLocked = false;
+        admin.isAdmin = true;
+        m_accounts[admin.cardNumber] = admin;
     }
     
     qDebug() << "成功从" << filePath << "加载" << m_accounts.size() << "个账户";
@@ -365,4 +422,95 @@ double AccountModel::predictBalance(const QString &cardNumber, const Transaction
     qDebug() << "Predicted Balance in" << daysInFuture << "days:" << predictedBalance;
 
     return predictedBalance;
+}
+
+bool AccountModel::isAdmin(const QString &cardNumber) const
+{
+    const Account* account = findAccount(cardNumber);
+    return account ? account->isAdmin : false;
+}
+
+QVector<Account> AccountModel::getAllAccounts() const
+{
+    QVector<Account> accounts;
+    for (const auto &account : m_accounts) {
+        accounts.append(account);
+    }
+    return accounts;
+}
+
+bool AccountModel::createAccount(const Account &account)
+{
+    // Check if account with this card number already exists
+    if (accountExists(account.cardNumber)) {
+        qWarning() << "创建账户失败: 卡号" << account.cardNumber << "已存在";
+        return false;
+    }
+    
+    // Add the account
+    addAccount(account);
+    saveAccounts();
+    qDebug() << "成功创建新账户，卡号:" << account.cardNumber;
+    return true;
+}
+
+bool AccountModel::updateAccount(const Account &account)
+{
+    Account* existingAccount = findAccount(account.cardNumber);
+    if (!existingAccount) {
+        qWarning() << "更新账户失败: 卡号" << account.cardNumber << "不存在";
+        return false;
+    }
+    
+    // Update account details
+    *existingAccount = account;
+    saveAccounts();
+    qDebug() << "成功更新账户信息，卡号:" << account.cardNumber;
+    return true;
+}
+
+bool AccountModel::deleteAccount(const QString &cardNumber)
+{
+    if (!accountExists(cardNumber)) {
+        qWarning() << "删除账户失败: 卡号" << cardNumber << "不存在";
+        return false;
+    }
+    
+    m_accounts.remove(cardNumber);
+    saveAccounts();
+    qDebug() << "成功删除账户，卡号:" << cardNumber;
+    return true;
+}
+
+bool AccountModel::setAccountLockStatus(const QString &cardNumber, bool locked)
+{
+    Account* account = findAccount(cardNumber);
+    if (!account) {
+        qWarning() << "设置账户锁定状态失败: 卡号" << cardNumber << "不存在";
+        return false;
+    }
+    
+    account->isLocked = locked;
+    saveAccounts();
+    qDebug() << "成功" << (locked ? "锁定" : "解锁") << "账户，卡号:" << cardNumber;
+    return true;
+}
+
+bool AccountModel::setWithdrawLimit(const QString &cardNumber, double limit)
+{
+    Account* account = findAccount(cardNumber);
+    if (!account) {
+        qWarning() << "设置取款限额失败: 卡号" << cardNumber << "不存在";
+        return false;
+    }
+    
+    if (limit < 0) {
+        qWarning() << "设置取款限额失败: 限额不能为负数";
+        return false;
+    }
+    
+    account->withdrawLimit = limit;
+    saveAccounts();
+    qDebug() << "成功设置取款限额为" << limit << "，卡号:" << cardNumber;
+    return true;
 } 

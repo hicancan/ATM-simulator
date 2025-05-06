@@ -51,6 +51,24 @@ Page {
                 Layout.alignment: Qt.AlignRight
                 Layout.fillWidth: true
             }
+            
+            // 管理员标记
+            Rectangle {
+                visible: controller.accountViewModel.isAdmin
+                color: "#f44336"
+                radius: height / 2
+                Layout.preferredWidth: adminLabel.width + 16
+                Layout.preferredHeight: 24
+                
+                Label {
+                    id: adminLabel
+                    text: "管理员"
+                    anchors.centerIn: parent
+                    font.bold: true
+                    font.pixelSize: 12
+                    color: "white"
+                }
+            }
         }
     }
     
@@ -65,7 +83,7 @@ Page {
         }
         
         columns: 2
-        rows: 3
+        rows: controller.accountViewModel.isAdmin ? 4 : 3
         rowSpacing: 20
         columnSpacing: 30
         
@@ -115,6 +133,28 @@ Page {
             onClicked: {
                 controller.logout()
             }
+        }
+        
+        // 管理员菜单按钮
+        TransactionButton {
+            buttonText: "管理员功能"
+            Layout.alignment: Qt.AlignHCenter
+            visible: controller.accountViewModel.isAdmin
+            Layout.row: 3
+            Layout.column: 0
+            Layout.columnSpan: 2
+            
+            Rectangle {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 10
+                width: 16
+                height: 16
+                radius: 8
+                color: "#f44336"
+            }
+            
+            onClicked: controller.switchToPage("AdminPage")
         }
     }
 } 
