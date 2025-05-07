@@ -47,6 +47,15 @@ struct Account {
     }
 };
 
+// 结果类型，用于返回操作结果和错误信息
+struct OperationResult {
+    bool success;
+    QString errorMessage;
+    
+    static OperationResult Success() { return {true, ""}; }
+    static OperationResult Failure(const QString &error) { return {false, error}; }
+};
+
 class AccountModel : public QObject
 {
     Q_OBJECT
@@ -86,6 +95,22 @@ public:
     // 持久化存储方法
     bool saveAccounts(const QString &filename = "accounts.json");
     bool loadAccounts(const QString &filename = "accounts.json");
+    
+    // 新增的业务逻辑方法，返回 OperationResult
+    OperationResult validateLogin(const QString &cardNumber, const QString &pin);
+    OperationResult validateAdminLogin(const QString &cardNumber, const QString &pin);
+    OperationResult validateWithdrawal(const QString &cardNumber, double amount);
+    OperationResult validateDeposit(const QString &cardNumber, double amount);
+    OperationResult validateTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount);
+    OperationResult validatePinChange(const QString &cardNumber, const QString &currentPin, const QString &newPin, const QString &confirmPin);
+    OperationResult validateCreateAccount(const QString &cardNumber, const QString &pin, const QString &holderName, 
+                                      double balance, double withdrawLimit, bool isAdmin);
+    OperationResult validateUpdateAccount(const QString &cardNumber, const QString &holderName, 
+                                      double balance, double withdrawLimit);
+    OperationResult performWithdrawal(const QString &cardNumber, double amount);
+    OperationResult performDeposit(const QString &cardNumber, double amount);
+    OperationResult performTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount);
+    QString getTargetAccountInfo(const QString &cardNumber, const QString &targetCardNumber);
 
 private:
     // In a real application, this would be replaced with database access
@@ -99,4 +124,4 @@ private:
     const Account* findAccount(const QString &cardNumber) const;
     
     QString m_dataPath;
-}; 
+};
