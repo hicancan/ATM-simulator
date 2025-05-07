@@ -50,7 +50,7 @@ Page {
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: Math.min(parent.width - 40, 500)  // 响应式宽度
-                Layout.preferredHeight: 380  // 减小高度
+                Layout.preferredHeight: 400  // 调整高度
                 Layout.leftMargin: 20
                 Layout.rightMargin: 20
                 radius: 10
@@ -59,11 +59,11 @@ Page {
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 20
-                    spacing: 15  // 减少间距
+                    spacing: 15
                     
                     Label {
                         text: "修改PIN码"
-                        font.pixelSize: 22  // 减小字体
+                        font.pixelSize: 24
                         font.bold: true
                         Layout.alignment: Qt.AlignHCenter
                         color: "white"
@@ -90,6 +90,14 @@ Page {
                         Layout.fillWidth: true
                         font.pixelSize: 16
                         
+                        background: Rectangle {
+                            color: "#2a2d3a"
+                            radius: 5
+                            border.color: "#3a3d4a"
+                            border.width: 1
+                        }
+                        color: "white"
+                        
                         onTextChanged: {
                             controller.accountViewModel.clearError()
                         }
@@ -113,6 +121,14 @@ Page {
                         maximumLength: 4
                         Layout.fillWidth: true
                         font.pixelSize: 16
+                        
+                        background: Rectangle {
+                            color: "#2a2d3a"
+                            radius: 5
+                            border.color: "#3a3d4a"
+                            border.width: 1
+                        }
+                        color: "white"
                         
                         onTextChanged: {
                             controller.accountViewModel.clearError()
@@ -138,6 +154,14 @@ Page {
                         Layout.fillWidth: true
                         font.pixelSize: 16
                         
+                        background: Rectangle {
+                            color: "#2a2d3a"
+                            radius: 5
+                            border.color: "#3a3d4a"
+                            border.width: 1
+                        }
+                        color: "white"
+                        
                         onTextChanged: {
                             controller.accountViewModel.clearError()
                         }
@@ -157,21 +181,29 @@ Page {
                         font.pixelSize: 16
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
+                        Layout.topMargin: 10
                     }
                     
-                    // 按钮使用FlowLayout，在小屏幕上自动换行
-                    Flow {
+                    // 按钮使用RowLayout以保持一致的布局
+                    RowLayout {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
+                        Layout.topMargin: 10
                         spacing: 20
+                        
+                        Item { Layout.fillWidth: true }
                         
                         Button {
                             id: changePasswordButton
                             text: "确认修改"
-                            width: 150
-                            height: 50
+                            Layout.preferredWidth: 160
+                            Layout.preferredHeight: 50
                             font.pixelSize: 16
-                            Material.background: Material.Green
+                            
+                            background: Rectangle {
+                                color: "#4CAF50"  // Green
+                                radius: 5
+                            }
                             
                             onClicked: {
                                 if (controller.accountViewModel.changePassword(
@@ -186,15 +218,21 @@ Page {
                         
                         Button {
                             text: "取消"
-                            width: 150
-                            height: 50
+                            Layout.preferredWidth: 160
+                            Layout.preferredHeight: 50
                             font.pixelSize: 16
-                            Material.background: Material.Blue
+                            
+                            background: Rectangle {
+                                color: "#2196F3"  // Blue
+                                radius: 5
+                            }
                             
                             onClicked: {
                                 controller.switchToPage("MainMenu")
                             }
                         }
+                        
+                        Item { Layout.fillWidth: true }
                     }
                 }
             }
@@ -213,7 +251,25 @@ Page {
         title: "操作成功"
         modal: true
         anchors.centerIn: parent
-        standardButtons: Dialog.Ok
+        width: 300
+        
+        contentItem: ColumnLayout {
+            spacing: 20
+            
+            Label {
+                text: "PIN码修改成功！"
+                font.pixelSize: 16
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+        
+        footer: DialogButtonBox {
+            Button {
+                text: "确定"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+            }
+        }
         
         onAccepted: {
             // Clear fields and return to main menu
@@ -221,11 +277,6 @@ Page {
             newPinField.text = ""
             confirmPinField.text = ""
             controller.switchToPage("MainMenu")
-        }
-        
-        Label {
-            text: "PIN码修改成功！"
-            horizontalAlignment: Text.AlignHCenter
         }
     }
 } 

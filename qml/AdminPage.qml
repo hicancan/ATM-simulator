@@ -22,7 +22,9 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         
-        onBackClicked: controller.switchToPage("MainMenu")
+        onBackClicked: {
+            controller.logout()
+        }
     }
     
     // Main content
@@ -353,12 +355,13 @@ Page {
             
             // 返回按钮
             Button {
-                text: "返回主菜单"
+                text: "注销"
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 200
                 Layout.preferredHeight: 50
+                Material.background: Material.Red
                 
-                onClicked: controller.switchToPage("MainMenu")
+                onClicked: controller.logout()
             }
             
             // 底部空间

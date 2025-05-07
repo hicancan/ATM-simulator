@@ -127,7 +127,12 @@ Page {
                     // 直接使用loginWithCard方法，避免数据同步问题
                     if (controller.accountViewModel.loginWithCard(cardNumberField.text, pinField.text)) {
                         pinField.text = ""
-                        controller.switchToPage("MainMenu")
+                        // 检查是否是管理员，如果是则直接跳转到AdminPage
+                        if (controller.accountViewModel.isAdmin) {
+                            controller.switchToPage("AdminPage")
+                        } else {
+                            controller.switchToPage("MainMenu")
+                        }
                     }
                 }
             }

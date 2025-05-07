@@ -283,8 +283,24 @@ bool AccountViewModel::transfer(const QString &targetCard, double amount)
         QString receiverName = m_accountModel.getHolderName(targetCard);
         QString description = QString("转账至%1（%2）").arg(receiverName).arg(targetCard.right(4));
         
-        // 记录交易
+        // 记录转账方的交易
         recordTransaction(TransactionType::Transfer, amount, balance(), description, targetCard);
+        
+        // 记录收款方的交易
+        // 获取收款方转账后的余额
+        double receiverBalance = m_accountModel.getBalance(targetCard);
+        // 创建收款方的交易记录，作为一种存款类型
+        Transaction receiverTransaction;
+        receiverTransaction.cardNumber = targetCard;
+        receiverTransaction.timestamp = QDateTime::currentDateTime();
+        receiverTransaction.type = TransactionType::Deposit; // 作为存款类型
+        receiverTransaction.amount = amount;
+        receiverTransaction.balanceAfter = receiverBalance;
+        receiverTransaction.description = QString("收到来自%1（%2）的转账").arg(holderName()).arg(m_cardNumber.right(4));
+        receiverTransaction.targetCardNumber = m_cardNumber;
+        
+        // 添加收款方交易记录
+        m_transactionModel->addTransaction(receiverTransaction);
         
         emit transactionCompleted(true, QString("成功转账：￥%1 至 %2").arg(amount).arg(receiverName));
         return true;
@@ -771,4 +787,4 @@ bool AccountViewModel::setWithdrawLimit(const QString &cardNumber, double limit)
     }
     
     return success;
-} 
+}

@@ -85,6 +85,14 @@ Page {
                 horizontalAlignment: TextInput.AlignHCenter
                 font.pixelSize: 18
                 
+                background: Rectangle {
+                    color: "#2a2d3a"
+                    radius: 5
+                    border.color: "#3a3d4a"
+                    border.width: 1
+                }
+                color: "white"
+                
                 onTextChanged: {
                     controller.accountViewModel.clearError()
                     if (text.length === 16) {
@@ -119,6 +127,44 @@ Page {
                 Layout.topMargin: 15
             }
             
+            // 快速转账选项
+            Label {
+                text: "快速转账:"
+                font.pixelSize: 18
+                Layout.alignment: Qt.AlignHCenter
+            }
+            
+            GridLayout {
+                Layout.alignment: Qt.AlignHCenter
+                columns: 3
+                rows: 2
+                columnSpacing: 15
+                rowSpacing: 15
+                
+                Repeater {
+                    model: [100, 500, 1000, 2000, 5000, 10000]
+                    
+                    Button {
+                        text: "￥" + modelData
+                        Layout.preferredWidth: 130
+                        Layout.preferredHeight: 50
+                        font.pixelSize: 16
+                        
+                        onClicked: {
+                            keypad.displayText = modelData.toString()
+                        }
+                    }
+                }
+            }
+            
+            // 自定义金额
+            Label {
+                text: "自定义金额:"
+                font.pixelSize: 18
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 15
+            }
+            
             // 数字键盘和按钮垂直布局
             ColumnLayout {
                 Layout.alignment: Qt.AlignHCenter
@@ -132,70 +178,32 @@ Page {
                     Layout.alignment: Qt.AlignHCenter
                 }
                 
-                // 转账金额快速选择
-                GridLayout {
-                    Layout.alignment: Qt.AlignHCenter
-                    columns: 3
-                    rows: 1
-                    columnSpacing: 15
-                    
-                    Repeater {
-                        model: [100, 500, 1000]
-                        
-                        Button {
-                            text: "￥" + modelData
-                            Layout.preferredWidth: 80
-                            Layout.preferredHeight: 40
-                            font.pixelSize: 14
-                            
-                            onClicked: {
-                                keypad.displayText = modelData.toString()
-                            }
-                        }
-                    }
-                }
-                
                 // 操作按钮
-                RowLayout {
+                BottomActionButtons {
                     Layout.alignment: Qt.AlignHCenter
-                    spacing: 15
+                    Layout.topMargin: 10
+                    confirmText: "确认转账"
+                    cancelText: "返回主菜单"
                     
-                    Button {
-                        id: confirmButton
-                        text: "确认转账"
-                        Layout.preferredWidth: 130
-                        Layout.preferredHeight: 50
-                        font.pixelSize: 16
-                        Material.background: Material.Green
-                        
-                        onClicked: {
-                            if (targetCardField.text.length !== 16) {
-                                controller.accountViewModel.setErrorMessage("请输入16位目标卡号")
-                                return
-                            }
-                            
-                            var amount = parseFloat(keypad.displayText)
-                            if (isNaN(amount) || amount <= 0) {
-                                controller.accountViewModel.setErrorMessage("请输入有效金额")
-                                return
-                            }
-                            
-                            // 显示确认对话框
-                            confirmDialog.targetCard = targetCardField.text
-                            confirmDialog.transferAmount = amount
-                            confirmDialog.open()
+                    onConfirmed: {
+                        if (targetCardField.text.length !== 16) {
+                            controller.accountViewModel.setErrorMessage("请输入16位目标卡号")
+                            return
                         }
+                        
+                        var amount = parseFloat(keypad.displayText)
+                        if (isNaN(amount) || amount <= 0) {
+                            controller.accountViewModel.setErrorMessage("请输入有效金额")
+                            return
+                        }
+                        
+                        // 显示确认对话框
+                        confirmDialog.targetCard = targetCardField.text
+                        confirmDialog.transferAmount = amount
+                        confirmDialog.open()
                     }
                     
-                    Button {
-                        text: "返回主菜单"
-                        Layout.preferredWidth: 130
-                        Layout.preferredHeight: 50
-                        font.pixelSize: 16
-                        Material.background: Material.Blue
-                        
-                        onClicked: controller.switchToPage("MainMenu")
-                    }
+                    onCanceled: controller.switchToPage("MainMenu")
                 }
             }
             
