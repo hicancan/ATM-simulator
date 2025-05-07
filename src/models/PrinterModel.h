@@ -3,22 +3,13 @@
 #include <QObject>
 #include <QString>
 #include <QPrinter>
-#include <QPrintDialog>
-#include <QDialog>
-#include <QPainter>
-#include <QTextDocument>
-#include <QTextCursor>
-#include <QTextTable>
-#include <QTextFrame>
 #include <QDateTime>
-#include <QWindow>
+#include <QPrinterInfo>
+#include <QTextDocument>
 
-#ifdef Q_OS_WIN
-#include <Windows.h>
-#include <commdlg.h>
-#include <winspool.h>
-#endif
-
+/**
+ * @brief 打印模型类，负责生成打印内容和实际的打印功能
+ */
 class PrinterModel : public QObject
 {
     Q_OBJECT
@@ -27,10 +18,28 @@ public:
     explicit PrinterModel(QObject *parent = nullptr);
     ~PrinterModel();
 
-    // 打印回单方法
+    /**
+     * @brief 打印回单
+     * @param htmlContent 回单的HTML内容
+     * @param showPrintDialog 是否显示打印对话框
+     * @return 是否打印成功
+     */
     bool printReceipt(const QString &htmlContent, bool showPrintDialog = true);
     
-    // 生成HTML内容
+    /**
+     * @brief 生成回单的HTML内容
+     * @param bankName 银行名称
+     * @param cardNumber 卡号
+     * @param holderName 持卡人姓名
+     * @param transactionType 交易类型
+     * @param amount 交易金额
+     * @param balanceAfter 交易后余额
+     * @param targetCardNumber 目标卡号（转账时使用）
+     * @param targetCardHolder 目标持卡人（转账时使用）
+     * @param transactionDate 交易日期时间
+     * @param transactionId 交易编号
+     * @return 生成的HTML内容
+     */
     QString generateReceiptHtml(
         const QString &bankName,
         const QString &cardNumber,
@@ -50,11 +59,4 @@ private:
     
     // 打印机对象
     QPrinter *m_printer;
-    
-    // Windows打印会话
-#ifdef Q_OS_WIN
-    bool printWithWindowsDialog(const QString &htmlContent);
-    bool setupWindowsPrintDialog(PRINTDLGEX &pdex);
-    bool GetPrinterNameFromHDC(HDC hdc, LPWSTR printerName, DWORD bufferSize);
-#endif
-}; 
+};

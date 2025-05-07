@@ -29,9 +29,12 @@ public:
 
     // Property getters/setters
     QString cardNumber() const;
-    void setCardNumber(const QString &cardNumber);
+    Q_INVOKABLE void setCardNumber(const QString &cardNumber);
     int recentTransactionCount() const;
-    void setRecentTransactionCount(int count);
+    Q_INVOKABLE void setRecentTransactionCount(int count);
+    
+    // 添加直接更新卡号并刷新交易的方法（供QML使用）
+    Q_INVOKABLE void updateCardNumber(const QString &cardNumber);
 
     // Set the transaction model reference
     void setTransactionModel(TransactionModel *model);
@@ -53,4 +56,4 @@ private:
     int m_recentTransactionCount;
     TransactionModel *m_transactionModel;
     QVector<Transaction> m_transactions;
-}; 
+};

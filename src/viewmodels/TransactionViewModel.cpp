@@ -146,3 +146,18 @@ QString TransactionViewModel::getTransactionTypeName(int type) const
             return "其他";
     }
 }
+
+void TransactionViewModel::updateCardNumber(const QString &cardNumber)
+{
+    // 记录日志
+    qDebug() << "TransactionViewModel::updateCardNumber 被调用，卡号:" << cardNumber;
+    
+    // 更新卡号并刷新
+    if (m_cardNumber != cardNumber) {
+        m_cardNumber = cardNumber;
+        emit cardNumberChanged();
+        refreshTransactions();
+        
+        qDebug() << "卡号已更新，刷新交易记录完成，记录数量:" << m_transactions.size();
+    }
+}

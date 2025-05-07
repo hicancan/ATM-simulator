@@ -20,6 +20,9 @@ class AccountViewModel : public QObject
 public:
     explicit AccountViewModel(QObject *parent = nullptr);
 
+    // 获取 AccountModel 引用
+    AccountModel& getAccountModel() { return m_accountModel; }
+    
     // Property getters/setters
     QString cardNumber() const;
     Q_INVOKABLE void setCardNumber(const QString &cardNumber);
@@ -84,4 +87,4 @@ private:
     
     // Helper method to record transactions
     void recordTransaction(TransactionType type, double amount, double balanceAfter, const QString &description, const QString &targetCard = QString());
-}; 
+};

@@ -7,6 +7,7 @@
 
 AccountModel::AccountModel(QObject *parent)
     : QObject(parent)
+    , m_transactionModel(nullptr)
 {
     // 设置数据存储路径
     m_dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -895,6 +896,12 @@ OperationResult AccountModel::calculatePredictedBalance(const QString &cardNumbe
                                                       int daysInFuture, 
                                                       double &outBalance)
 {
+    // 添加更详细的日志
+    qDebug() << "计算预测余额开始 - 卡号:" << cardNumber 
+             << ", 天数:" << daysInFuture
+             << ", TransactionModel:" << (transactionModel ? "有效" : "无效")
+             << ", 内部存储的TransactionModel:" << (m_transactionModel ? "有效" : "无效");
+    
     // 验证卡号是否存在
     if (cardNumber.isEmpty()) {
         return OperationResult::Failure("没有有效的卡号");
@@ -905,8 +912,16 @@ OperationResult AccountModel::calculatePredictedBalance(const QString &cardNumbe
         return OperationResult::Failure("账户不存在");
     }
     
-    // 验证TransactionModel是否有效
-    if (!transactionModel) {
+    // 尝试使用传入的交易模型或内部存储的交易模型
+    const TransactionModel* modelToUse = transactionModel;
+    if (!modelToUse) {
+        modelToUse = m_transactionModel;
+        qDebug() << "传入的TransactionModel无效，尝试使用内部存储的TransactionModel";
+    }
+    
+    // 最终验证是否有可用的交易模型
+    if (!modelToUse) {
+        qWarning() << "无法计算预测余额：没有可用的TransactionModel";
         return OperationResult::Failure("交易模型无效");
     }
     
@@ -920,7 +935,8 @@ OperationResult AccountModel::calculatePredictedBalance(const QString &cardNumbe
     }
     
     // 调用现有方法计算预测余额
-    outBalance = predictBalance(cardNumber, transactionModel, daysInFuture);
+    outBalance = predictBalance(cardNumber, modelToUse, daysInFuture);
+    qDebug() << "预测余额计算成功 - 结果:" << outBalance;
     return OperationResult::Success();
 }
 
@@ -1027,4 +1043,35 @@ OperationResult AccountModel::validateTargetAccount(const QString &sourceCard, c
     }
     
     return OperationResult::Success();
+}
+
+void AccountModel::setTransactionModel(TransactionModel* transactionModel)
+{
+    m_transactionModel = transactionModel;
+}
+
+// 新增记录交易的方法
+void AccountModel::recordTransaction(const QString &cardNumber, TransactionType type, 
+                                     double amount, double balanceAfter, 
+                                     const QString &description, const QString &targetCard)
+{
+    // 检查 TransactionModel 是否可用
+    if (!m_transactionModel) {
+        qWarning() << "交易记录失败：未设置 TransactionModel";
+        return;
+    }
+    
+    // 检查卡号是否合法
+    if (!accountExists(cardNumber)) {
+        qWarning() << "交易记录失败：卡号" << cardNumber << "不存在";
+        return;
+    }
+    
+    // 使用 TransactionModel 记录交易
+    m_transactionModel->recordTransaction(cardNumber, type, amount, balanceAfter, description, targetCard);
+    
+    qDebug() << "成功记录交易，卡号:" << cardNumber 
+             << "，类型:" << static_cast<int>(type) 
+             << "，金额:" << amount 
+             << "，交易后余额:" << balanceAfter;
 }

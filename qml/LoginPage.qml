@@ -67,7 +67,10 @@ Page {
                 font.pixelSize: 18
                 
                 onTextChanged: {
-                    controller.accountViewModel.clearError()
+                    // 添加 null 检查
+                    if (controller && controller.accountViewModel) {
+                        controller.accountViewModel.clearError()
+                    }
                 }
                 
                 onAccepted: {
@@ -93,7 +96,10 @@ Page {
                 font.pixelSize: 18
                 
                 onTextChanged: {
-                    controller.accountViewModel.clearError()
+                    // 添加 null 检查
+                    if (controller && controller.accountViewModel) {
+                        controller.accountViewModel.clearError()
+                    }
                 }
                 
                 onAccepted: {
@@ -110,6 +116,12 @@ Page {
                 font.pixelSize: 16
                 
                 onClicked: {
+                    // 添加 null 检查
+                    if (!controller || !controller.accountViewModel) {
+                        console.error("controller 或 accountViewModel 为 null")
+                        return
+                    }
+                    
                     controller.accountViewModel.clearError()
                     
                     if (cardNumberField.text.length === 0) {
@@ -140,7 +152,8 @@ Page {
             // Show error message if any
             Label {
                 id: errorLabel
-                text: controller.accountViewModel.errorMessage
+                // 添加 null 检查
+                text: controller && controller.accountViewModel ? controller.accountViewModel.errorMessage : ""
                 color: "red"
                 visible: text !== ""
                 Layout.alignment: Qt.AlignHCenter
@@ -228,4 +241,12 @@ Page {
     Component.onCompleted: {
         cardNumberField.forceActiveFocus()
     }
-} 
+    
+    // 添加连接器来安全地处理 controller.accountViewModel 的访问
+    Connections {
+        target: controller ? controller.accountViewModel : null
+        function onErrorMessageChanged() {
+            // 处理错误消息变化，这样可以避免直接绑定到 controller.accountViewModel.errorMessage
+        }
+    }
+}

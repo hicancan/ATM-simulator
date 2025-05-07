@@ -65,6 +65,14 @@ public:
     explicit AccountModel(QObject *parent = nullptr);
     ~AccountModel();
     
+    // 设置 TransactionModel 引用
+    void setTransactionModel(TransactionModel* transactionModel);
+    
+    // 记录交易的方法
+    void recordTransaction(const QString &cardNumber, TransactionType type, 
+                           double amount, double balanceAfter, 
+                           const QString &description, const QString &targetCard = QString());
+    
     bool validateCredentials(const QString &cardNumber, const QString &pin);
     bool withdrawAmount(const QString &cardNumber, double amount);
     bool depositAmount(const QString &cardNumber, double amount);
@@ -156,6 +164,9 @@ public:
 private:
     // In a real application, this would be replaced with database access
     QMap<QString, Account> m_accounts;
+    
+    // TransactionModel 引用
+    TransactionModel* m_transactionModel;
     
     // Initialize with some test accounts
     void initializeTestAccounts();

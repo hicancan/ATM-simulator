@@ -190,7 +190,7 @@ Page {
     // Transaction Result Dialog
     Dialog {
         id: resultDialog
-        title: success ? "交易成功" : "交易失败"
+        title: resultDialog.success ? "交易成功" : "交易失败"
         modal: true
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
@@ -203,8 +203,8 @@ Page {
             spacing: 20
             
             Label {
-                text: success ? 
-                    "您已成功取款：￥" + withdrewAmount.toFixed(2) : 
+                text: resultDialog.success ? 
+                    "您已成功取款：￥" + resultDialog.withdrewAmount.toFixed(2) : 
                     "交易失败，请重试"
                 font.pixelSize: 16
                 Layout.fillWidth: true
@@ -214,7 +214,7 @@ Page {
             Label {
                 text: "当前余额：￥" + controller.accountViewModel.balance.toFixed(2)
                 font.pixelSize: 16
-                visible: success
+                visible: resultDialog.success
             }
         }
         
@@ -245,4 +245,4 @@ Page {
             }
         }
     }
-} 
+}

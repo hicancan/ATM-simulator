@@ -81,7 +81,8 @@ ApplicationWindow {
             
             ToolButton {
                 text: qsTr("退出")
-                visible: controller.accountViewModel.isLoggedIn
+                // 添加 null 检查
+                visible: controller && controller.accountViewModel && controller.accountViewModel.isLoggedIn
                 onClicked: logoutDialog.open()
             }
             
@@ -116,9 +117,10 @@ ApplicationWindow {
     
     // Handle back button navigation
     onClosing: function(close) {
-        if (controller.accountViewModel.isLoggedIn) {
+        // 添加 null 检查
+        if (controller && controller.accountViewModel && controller.accountViewModel.isLoggedIn) {
             logoutDialog.open()
             close.accepted = false
         }
     }
-} 
+}

@@ -20,9 +20,11 @@ AppController::AppController(QObject *parent)
     connect(m_accountViewModel, &AccountViewModel::transactionRecorded,
             m_transactionViewModel, &TransactionViewModel::refreshTransactions);
     
-    // Create shared transaction model and connect to both view models
+    // 创建 TransactionModel 并将其注入到 AccountModel 中
     TransactionModel* transactionModel = new TransactionModel(this);
-    m_accountViewModel->setTransactionModel(transactionModel);
+    m_accountViewModel->getAccountModel().setTransactionModel(transactionModel);
+    
+    // 然后将同一个 TransactionModel 实例也设置到 TransactionViewModel
     m_transactionViewModel->setTransactionModel(transactionModel);
 }
 
@@ -90,4 +92,4 @@ void AppController::logout()
 {
     m_accountViewModel->logout();
     switchToPage("LoginPage");
-} 
+}

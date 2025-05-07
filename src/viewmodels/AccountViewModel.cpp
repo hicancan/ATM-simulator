@@ -14,6 +14,8 @@ AccountViewModel::AccountViewModel(QObject *parent)
 void AccountViewModel::setTransactionModel(TransactionModel *model)
 {
     m_transactionModel = model;
+    // 重要：确保也将 TransactionModel 传递给 AccountModel
+    m_accountModel.setTransactionModel(model);
 }
 
 QString AccountViewModel::cardNumber() const
@@ -250,9 +252,32 @@ bool AccountViewModel::transfer(const QString &targetCard, double amount)
         // 记录转账方的交易
         recordTransaction(TransactionType::Transfer, amount, balance(), description, targetCard);
         
-        // 记录收款方的交易 - 使用 Model 层的方法
-        double receiverBalance = m_accountModel.getBalance(targetCard);
-        m_transactionModel->recordTransferReceipt(m_cardNumber, holderName(), targetCard, amount, receiverBalance);
+        try {
+            // 获取接收方当前余额
+            double receiverBalance = m_accountModel.getBalance(targetCard);
+            
+            // 只有当获取目标账户余额成功时才记录交易
+            if (receiverBalance >= 0) {
+                // 构建收款方交易描述
+                QString receiveDescription = QString("收到来自%1（%2）的转账").arg(holderName()).arg(m_cardNumber.right(4));
+                
+                // 通过AccountModel记录收款方交易
+                m_accountModel.recordTransaction(
+                    targetCard,
+                    TransactionType::Deposit,
+                    amount,
+                    receiverBalance,
+                    receiveDescription,
+                    m_cardNumber
+                );
+            } else {
+                qWarning() << "无法记录收款方交易，目标账户余额无效:" << targetCard;
+            }
+        } catch (const std::exception& e) {
+            qWarning() << "记录收款方交易时发生异常:" << e.what();
+        } catch (...) {
+            qWarning() << "记录收款方交易时发生未知异常";
+        }
         
         emit transactionCompleted(true, QString("成功转账：￥%1 至 %2").arg(amount).arg(receiverName));
         return true;
@@ -314,13 +339,19 @@ bool AccountViewModel::changePassword(const QString &currentPin, const QString &
 void AccountViewModel::logout()
 {
     if (m_isLoggedIn) {
+        // 保存当前卡号，因为即将清除它
+        QString oldCardNumber = m_cardNumber;
+        double oldBalance = balance();
+        
+        // 记录登出交易（只有在卡号有效时）
+        if (!oldCardNumber.isEmpty()) {
+            recordTransaction(TransactionType::Other, 0.0, oldBalance, "登出系统");
+        }
+        
         m_isLoggedIn = false;
         m_isAdmin = false;
         m_cardNumber.clear();
         m_errorMessage.clear();
-        
-        // Record logout transaction
-        recordTransaction(TransactionType::Other, 0.0, balance(), "登出系统");
         
         emit isLoggedInChanged();
         emit isAdminChanged();
@@ -348,13 +379,11 @@ void AccountViewModel::clearError()
 
 void AccountViewModel::recordTransaction(TransactionType type, double amount, double balanceAfter, const QString &description, const QString &targetCard)
 {
-    if (m_transactionModel) {
-        // 直接使用 TransactionModel 中的方法记录交易
-        m_transactionModel->recordTransaction(m_cardNumber, type, amount, balanceAfter, description, targetCard);
-        
-        // 确保交易视图模型得到更新
-        emit transactionRecorded();
-    }
+    // 使用 AccountModel 中的记录交易方法
+    m_accountModel.recordTransaction(m_cardNumber, type, amount, balanceAfter, description, targetCard);
+    
+    // 触发信号通知交易视图模型更新
+    emit transactionRecorded();
 }
 
 void AccountViewModel::setErrorMessage(const QString &message)
@@ -370,6 +399,11 @@ double AccountViewModel::predictedBalance() const
 
 void AccountViewModel::calculatePredictedBalance(int daysInFuture)
 {
+    // 添加详细日志
+    qDebug() << "开始计算预测余额, 卡号:" << m_cardNumber 
+             << "天数:" << daysInFuture 
+             << "TransactionModel是否为空:" << (m_transactionModel == nullptr);
+    
     // 初始化预测余额变量
     double newPredictedBalance = 0.0;
     
@@ -392,6 +426,8 @@ void AccountViewModel::calculatePredictedBalance(int daysInFuture)
         m_predictedBalance = newPredictedBalance;
         emit predictedBalanceChanged();
     }
+    
+    qDebug() << "预测余额计算成功, 结果:" << m_predictedBalance;
 }
 
 QVariantList AccountViewModel::getAllAccounts()

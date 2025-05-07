@@ -62,24 +62,29 @@ Page {
         debugLabel.text = "调试: 正在刷新交易记录..."
         
         // 确保设置了正确的卡号
-        if (controller.accountViewModel.isLoggedIn && controller.accountViewModel.cardNumber) {
+        if (controller && controller.accountViewModel && controller.accountViewModel.isLoggedIn && controller.accountViewModel.cardNumber) {
             var cardNum = controller.accountViewModel.cardNumber
             debugLabel.text = "调试: 正在获取卡号" + cardNum + "的交易记录..."
             
-            // 重新设置交易视图模型的参数以触发刷新
-            controller.transactionViewModel.setCardNumber("")
-            controller.transactionViewModel.setCardNumber(cardNum)
-            controller.transactionViewModel.setRecentTransactionCount(20) // 显示最近20条交易
-            
-            // 强制刷新
-            controller.transactionViewModel.refreshTransactions()
-            
-            // 更新调试标签
-            var count = controller.transactionViewModel.rowCount()
-            debugLabel.text = "调试: 已加载 " + count + " 条交易记录"
-            
-            // 打印调试信息
-            console.log("刷新交易历史: 卡号=" + cardNum + ", 记录数=" + count)
+            // 使用新的updateCardNumber方法替代setCardNumber方法
+            if (controller.transactionViewModel) {
+                // 使用新添加的更可靠的方法
+                controller.transactionViewModel.updateCardNumber(cardNum)
+                controller.transactionViewModel.setRecentTransactionCount(20) // 显示最近20条交易
+                
+                // 强制刷新
+                controller.transactionViewModel.refreshTransactions()
+                
+                // 更新调试标签
+                var count = controller.transactionViewModel.rowCount()
+                debugLabel.text = "调试: 已加载 " + count + " 条交易记录"
+                
+                // 打印调试信息
+                console.log("刷新交易历史: 卡号=" + cardNum + ", 记录数=" + count)
+            } else {
+                debugLabel.text = "调试: TransactionViewModel不可用"
+                console.log("TransactionViewModel不可用")
+            }
         } else {
             debugLabel.text = "调试: 未登录或卡号无效，无法刷新交易历史"
             console.log("未登录或卡号无效，无法刷新交易历史")
@@ -310,4 +315,4 @@ Page {
             }
         }
     }
-} 
+}

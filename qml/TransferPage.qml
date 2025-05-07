@@ -285,7 +285,7 @@ Page {
     // 交易结果对话框
     Dialog {
         id: resultDialog
-        title: success ? "交易成功" : "交易失败"
+        title: resultDialog.success ? "交易成功" : "交易失败"
         modal: true
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
@@ -299,7 +299,7 @@ Page {
             spacing: 20
             
             Label {
-                text: success ? 
+                text: resultDialog.success ? 
                     "已成功转账：￥" + resultDialog.transferAmount.toFixed(2) + 
                     " 至 " + controller.accountViewModel.getTargetCardHolderName(resultDialog.targetCard) : 
                     "转账失败，请重试"
@@ -311,7 +311,7 @@ Page {
             Label {
                 text: "当前余额：￥" + controller.accountViewModel.balance.toFixed(2)
                 font.pixelSize: 16
-                visible: success
+                visible: resultDialog.success
             }
         }
         
@@ -344,4 +344,4 @@ Page {
             }
         }
     }
-} 
+}
