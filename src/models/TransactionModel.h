@@ -67,6 +67,20 @@ public:
     QVector<Transaction> getTransactionsForCard(const QString &cardNumber) const;
     QVector<Transaction> getRecentTransactions(const QString &cardNumber, int count) const;
     
+    // 新增的业务逻辑方法，用于创建交易记录
+    Transaction createTransaction(const QString &cardNumber, TransactionType type, 
+                                double amount, double balanceAfter, 
+                                const QString &description, const QString &targetCard = QString());
+    
+    // 创建交易记录并添加到模型中
+    void recordTransaction(const QString &cardNumber, TransactionType type, 
+                          double amount, double balanceAfter, 
+                          const QString &description, const QString &targetCard = QString());
+    
+    // 创建转账目标账户的交易记录（存款类型）
+    void recordTransferReceipt(const QString &fromCardNumber, const QString &fromCardHolderName, 
+                              const QString &toCardNumber, double amount, double balanceAfter);
+    
     // Clear transactions for a specific card (e.g., on logout)
     void clearTransactionsForCard(const QString &cardNumber);
     
@@ -83,4 +97,4 @@ private:
     
     // 数据存储路径
     QString m_dataPath;
-}; 
+};

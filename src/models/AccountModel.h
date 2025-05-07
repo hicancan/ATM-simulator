@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QVariantMap>
 #include "TransactionModel.h"
 
 // Account data structure
@@ -111,6 +112,26 @@ public:
     OperationResult performDeposit(const QString &cardNumber, double amount);
     OperationResult performTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount);
     QString getTargetAccountInfo(const QString &cardNumber, const QString &targetCardNumber);
+    
+    // 账户数据转换方法（将Account转换为ViewModel可用的格式）
+    QVariantMap accountToVariantMap(const Account &account) const;
+    QVariantList getAllAccountsAsVariantList() const;
+    
+    // 执行重置PIN的方法
+    OperationResult resetPin(const QString &cardNumber, const QString &newPin);
+    
+    // 从现有账户保留PIN和管理员状态，更新其他字段
+    OperationResult updateAccountFromViewModel(const QString &cardNumber, const QString &holderName, 
+                                           double balance, double withdrawLimit, bool isLocked);
+    
+    // 新增权限验证方法
+    OperationResult validateAdminOperation(const QString &cardNumber);
+
+    // 新增完整的预测余额方法，包含所有验证逻辑
+    OperationResult calculatePredictedBalance(const QString &cardNumber, 
+                                            const TransactionModel* transactionModel, 
+                                            int daysInFuture, 
+                                            double &outBalance);
 
 private:
     // In a real application, this would be replaced with database access

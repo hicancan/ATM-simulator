@@ -228,4 +228,48 @@ void TransactionModel::initializeTestTransactions()
     m_transactions.append(inquiry1);
     
     qDebug() << "已初始化" << m_transactions.size() << "条测试交易记录";
-} 
+}
+
+// 新增的业务逻辑方法，用于创建交易记录
+Transaction TransactionModel::createTransaction(const QString &cardNumber, TransactionType type, 
+                                            double amount, double balanceAfter, 
+                                            const QString &description, const QString &targetCard)
+{
+    Transaction transaction;
+    transaction.cardNumber = cardNumber;
+    transaction.timestamp = QDateTime::currentDateTime();
+    transaction.type = type;
+    transaction.amount = amount;
+    transaction.balanceAfter = balanceAfter;
+    transaction.description = description;
+    transaction.targetCardNumber = targetCard;
+    
+    return transaction;
+}
+
+// 创建交易记录并添加到模型中
+void TransactionModel::recordTransaction(const QString &cardNumber, TransactionType type, 
+                                      double amount, double balanceAfter, 
+                                      const QString &description, const QString &targetCard)
+{
+    Transaction transaction = createTransaction(cardNumber, type, amount, balanceAfter, description, targetCard);
+    addTransaction(transaction);
+}
+
+// 创建转账目标账户的交易记录（存款类型）
+void TransactionModel::recordTransferReceipt(const QString &fromCardNumber, const QString &fromCardHolderName, 
+                                          const QString &toCardNumber, double amount, double balanceAfter)
+{
+    QString description = QString("收到来自%1（%2）的转账").arg(fromCardHolderName).arg(fromCardNumber.right(4));
+    
+    Transaction receiverTransaction = createTransaction(
+        toCardNumber,
+        TransactionType::Deposit,
+        amount,
+        balanceAfter,
+        description,
+        fromCardNumber
+    );
+    
+    addTransaction(receiverTransaction);
+}

@@ -784,3 +784,142 @@ QString AccountModel::getTargetAccountInfo(const QString &cardNumber, const QStr
     
     return targetAccount->holderName;
 }
+
+// 在文件末尾添加新的方法实现
+
+// 将 Account 对象转换为 QVariantMap
+QVariantMap AccountModel::accountToVariantMap(const Account &account) const
+{
+    QVariantMap accountMap;
+    accountMap["cardNumber"] = account.cardNumber;
+    accountMap["holderName"] = account.holderName;
+    accountMap["balance"] = account.balance;
+    accountMap["withdrawLimit"] = account.withdrawLimit;
+    accountMap["isLocked"] = account.isLocked;
+    accountMap["isAdmin"] = account.isAdmin;
+    return accountMap;
+}
+
+// 获取所有账户并转换为 QVariantList 格式
+QVariantList AccountModel::getAllAccountsAsVariantList() const
+{
+    QVariantList result;
+    QVector<Account> accounts = getAllAccounts();
+    
+    for (const Account &account : accounts) {
+        result.append(accountToVariantMap(account));
+    }
+    
+    return result;
+}
+
+// 执行重置PIN的方法
+OperationResult AccountModel::resetPin(const QString &cardNumber, const QString &newPin)
+{
+    // 验证卡号是否存在
+    if (!accountExists(cardNumber)) {
+        return OperationResult::Failure("卡号不存在");
+    }
+    
+    // 验证新PIN格式
+    if (newPin.length() != 4 || !newPin.toInt()) {
+        return OperationResult::Failure("PIN码必须是4位数字");
+    }
+    
+    // 获取账户并更新PIN
+    Account* account = findAccount(cardNumber);
+    if (!account) {
+        return OperationResult::Failure("找不到账户");
+    }
+    
+    // 更新PIN
+    account->pin = newPin;
+    
+    // 保存更改
+    if (saveAccounts()) {
+        return OperationResult::Success();
+    } else {
+        return OperationResult::Failure("保存账户数据失败");
+    }
+}
+
+// 从 ViewModel 更新账户，保留 PIN 和管理员状态
+OperationResult AccountModel::updateAccountFromViewModel(const QString &cardNumber, const QString &holderName, 
+                                                     double balance, double withdrawLimit, bool isLocked)
+{
+    // 验证账户更新参数
+    OperationResult result = validateUpdateAccount(cardNumber, holderName, balance, withdrawLimit);
+    if (!result.success) {
+        return result;
+    }
+    
+    // 获取现有账户
+    Account* account = findAccount(cardNumber);
+    if (!account) {
+        return OperationResult::Failure("找不到账户");
+    }
+    
+    // 更新可以修改的字段，但保留 PIN 和管理员状态
+    account->holderName = holderName;
+    account->balance = balance;
+    account->withdrawLimit = withdrawLimit;
+    account->isLocked = isLocked;
+    
+    // 保存更改
+    if (saveAccounts()) {
+        return OperationResult::Success();
+    } else {
+        return OperationResult::Failure("保存账户数据失败");
+    }
+}
+
+// 管理员权限验证方法
+OperationResult AccountModel::validateAdminOperation(const QString &cardNumber)
+{
+    // 验证卡号存在
+    if (!accountExists(cardNumber)) {
+        return OperationResult::Failure("卡号不存在");
+    }
+    
+    // 验证是否为管理员
+    if (!isAdmin(cardNumber)) {
+        return OperationResult::Failure("没有管理员权限执行此操作");
+    }
+    
+    return OperationResult::Success();
+}
+
+// 实现完整的预测余额方法，包含验证逻辑
+OperationResult AccountModel::calculatePredictedBalance(const QString &cardNumber, 
+                                                      const TransactionModel* transactionModel, 
+                                                      int daysInFuture, 
+                                                      double &outBalance)
+{
+    // 验证卡号是否存在
+    if (cardNumber.isEmpty()) {
+        return OperationResult::Failure("没有有效的卡号");
+    }
+    
+    // 验证账户是否存在
+    if (!accountExists(cardNumber)) {
+        return OperationResult::Failure("账户不存在");
+    }
+    
+    // 验证TransactionModel是否有效
+    if (!transactionModel) {
+        return OperationResult::Failure("交易模型无效");
+    }
+    
+    // 限制预测天数在合理范围内
+    if (daysInFuture <= 0) {
+        return OperationResult::Failure("预测天数必须大于0");
+    }
+    
+    if (daysInFuture > 365) {
+        return OperationResult::Failure("预测天数过长，请选择1-365天之间");
+    }
+    
+    // 调用现有方法计算预测余额
+    outBalance = predictBalance(cardNumber, transactionModel, daysInFuture);
+    return OperationResult::Success();
+}
