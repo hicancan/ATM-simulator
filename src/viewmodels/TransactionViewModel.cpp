@@ -103,17 +103,35 @@ void TransactionViewModel::refreshTransactions()
 
 QString TransactionViewModel::formatAmount(double amount) const
 {
+    // 调用Model层的格式化方法
+    if (m_transactionModel) {
+        return m_transactionModel->formatAmount(amount);
+    }
+    
+    // 如果Model不可用，提供备用实现
     QLocale locale = QLocale::system();
     return locale.toString(amount, 'f', 2);
 }
 
 QString TransactionViewModel::formatDate(const QDateTime &dateTime) const
 {
+    // 调用Model层的格式化方法
+    if (m_transactionModel) {
+        return m_transactionModel->formatDate(dateTime);
+    }
+    
+    // 如果Model不可用，提供备用实现
     return dateTime.toString("yyyy-MM-dd hh:mm:ss");
 }
 
 QString TransactionViewModel::getTransactionTypeName(int type) const
 {
+    // 调用Model层的格式化方法
+    if (m_transactionModel) {
+        return m_transactionModel->getTransactionTypeName(type);
+    }
+    
+    // 如果Model不可用，提供备用实现
     switch (static_cast<TransactionType>(type)) {
         case TransactionType::Deposit:
             return "存款";
@@ -127,4 +145,4 @@ QString TransactionViewModel::getTransactionTypeName(int type) const
         default:
             return "其他";
     }
-} 
+}

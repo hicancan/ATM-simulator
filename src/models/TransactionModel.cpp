@@ -273,3 +273,32 @@ void TransactionModel::recordTransferReceipt(const QString &fromCardNumber, cons
     
     addTransaction(receiverTransaction);
 }
+
+// 实现数据格式化方法
+QString TransactionModel::formatAmount(double amount) const
+{
+    QLocale locale = QLocale::system();
+    return locale.toString(amount, 'f', 2);
+}
+
+QString TransactionModel::formatDate(const QDateTime &dateTime) const
+{
+    return dateTime.toString("yyyy-MM-dd hh:mm:ss");
+}
+
+QString TransactionModel::getTransactionTypeName(int type) const
+{
+    switch (static_cast<TransactionType>(type)) {
+        case TransactionType::Deposit:
+            return "存款";
+        case TransactionType::Withdrawal:
+            return "取款";
+        case TransactionType::BalanceInquiry:
+            return "余额查询";
+        case TransactionType::Transfer:
+            return "转账";
+        case TransactionType::Other:
+        default:
+            return "其他";
+    }
+}

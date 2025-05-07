@@ -88,6 +88,11 @@ public:
     bool saveTransactions(const QString &filename = "transactions.json");
     bool loadTransactions(const QString &filename = "transactions.json");
 
+    // 数据格式化方法，将业务逻辑从ViewModel层移至Model层
+    QString formatAmount(double amount) const;
+    QString formatDate(const QDateTime &dateTime) const;
+    QString getTransactionTypeName(int type) const;
+
 private:
     // 初始化测试交易数据
     void initializeTestTransactions();

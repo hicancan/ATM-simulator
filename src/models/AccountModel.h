@@ -133,6 +133,26 @@ public:
                                             int daysInFuture, 
                                             double &outBalance);
 
+    // 新增完整的业务处理方法，包含所有验证和操作逻辑
+    struct LoginResult {
+        bool success;
+        QString errorMessage;
+        bool isAdmin;
+        QString holderName;
+        double balance;
+        double withdrawLimit;
+    };
+    
+    // 完整的登录处理
+    LoginResult performLogin(const QString &cardNumber, const QString &pin);
+    LoginResult performAdminLogin(const QString &cardNumber, const QString &pin);
+    
+    // 完整的密码修改处理
+    OperationResult performPinChange(const QString &cardNumber, const QString &currentPin, const QString &newPin, const QString &confirmPin);
+    
+    // 验证目标账户（转账时）
+    OperationResult validateTargetAccount(const QString &sourceCard, const QString &targetCard);
+
 private:
     // In a real application, this would be replaced with database access
     QMap<QString, Account> m_accounts;

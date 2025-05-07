@@ -70,27 +70,29 @@ bool AccountViewModel::login(const QString &pin)
     // 清除错误消息
     clearError();
     
-    // 使用 Model 层的验证逻辑
-    OperationResult result = m_accountModel.validateLogin(m_cardNumber, pin);
-    if (!result.success) {
+    // 使用Model层处理完整的登录逻辑
+    AccountModel::LoginResult result = m_accountModel.performLogin(m_cardNumber, pin);
+    
+    if (result.success) {
+        // 更新视图状态
+        m_isLoggedIn = true;
+        m_isAdmin = result.isAdmin;
+        
+        // 发送信号通知UI更新
+        emit isLoggedInChanged();
+        emit holderNameChanged();
+        emit balanceChanged();
+        emit withdrawLimitChanged();
+        emit isAdminChanged();
+        
+        // 记录登录交易
+        recordTransaction(TransactionType::Other, 0.0, balance(), "登录成功");
+        return true;
+    } else {
+        // 处理错误
         setErrorMessage(result.errorMessage);
         return false;
     }
-    
-    // 验证成功，设置登录状态
-    m_isLoggedIn = true;
-    emit isLoggedInChanged();
-    emit holderNameChanged();
-    emit balanceChanged();
-    emit withdrawLimitChanged();
-    
-    // 检查是否为管理员账户
-    m_isAdmin = m_accountModel.isAdmin(m_cardNumber);
-    emit isAdminChanged();
-    
-    // 记录登录交易
-    recordTransaction(TransactionType::Other, 0.0, balance(), "登录成功");
-    return true;
 }
 
 bool AccountViewModel::loginWithCard(const QString &cardNumber, const QString &pin)
@@ -98,26 +100,27 @@ bool AccountViewModel::loginWithCard(const QString &cardNumber, const QString &p
     // 清除错误消息
     clearError();
     
-    // 特殊处理管理员账户
+    // 特殊处理管理员登录
     if (cardNumber == "9999888877776666") {
-        OperationResult result = m_accountModel.validateAdminLogin(cardNumber, pin);
+        AccountModel::LoginResult result = m_accountModel.performAdminLogin(cardNumber, pin);
         if (result.success) {
+            // 设置当前卡号
             m_cardNumber = cardNumber;
             emit cardNumberChanged();
             
+            // 更新视图状态
             m_isLoggedIn = true;
+            m_isAdmin = true;
+            
+            // 发送信号通知UI更新
             emit isLoggedInChanged();
             emit holderNameChanged();
             emit balanceChanged();
             emit withdrawLimitChanged();
-            
-            m_isAdmin = true;
             emit isAdminChanged();
             
             // 记录登录交易
             recordTransaction(TransactionType::Other, 0.0, balance(), "管理员登录成功");
-            
-            qDebug() << "管理员登录成功，卡号:" << m_cardNumber;
             return true;
         } else {
             setErrorMessage(result.errorMessage);
@@ -125,31 +128,29 @@ bool AccountViewModel::loginWithCard(const QString &cardNumber, const QString &p
         }
     }
     
-    // 处理普通账户
-    OperationResult result = m_accountModel.validateLogin(cardNumber, pin);
+    // 处理普通账户登录
+    AccountModel::LoginResult result = m_accountModel.performLogin(cardNumber, pin);
     if (result.success) {
-        // 验证成功后设置当前卡号
+        // 设置当前卡号
         m_cardNumber = cardNumber;
         emit cardNumberChanged();
         
+        // 更新视图状态
         m_isLoggedIn = true;
+        m_isAdmin = result.isAdmin;
+        
+        // 发送信号通知UI更新
         emit isLoggedInChanged();
         emit holderNameChanged();
         emit balanceChanged();
         emit withdrawLimitChanged();
-        
-        // 检查是否为管理员账户
-        m_isAdmin = m_accountModel.isAdmin(cardNumber);
         emit isAdminChanged();
         
         // 记录登录交易
         recordTransaction(TransactionType::Other, 0.0, balance(), "登录成功");
-        
-        qDebug() << "登录成功，卡号:" << m_cardNumber << "，用户类型:" << (m_isAdmin ? "管理员" : "普通用户");
         return true;
     } else {
         setErrorMessage(result.errorMessage);
-        qDebug() << "登录失败:" << result.errorMessage;
         return false;
     }
 }
@@ -270,8 +271,8 @@ bool AccountViewModel::validateTargetCard(const QString &targetCard)
         return false;
     }
     
-    // 部分验证逻辑转移至 Model 层
-    OperationResult result = m_accountModel.validateTransfer(m_cardNumber, targetCard, 1.0); // 金额参数只用于验证格式
+    // 使用Model层专门验证目标账户的方法
+    OperationResult result = m_accountModel.validateTargetAccount(m_cardNumber, targetCard);
     if (!result.success) {
         setErrorMessage(result.errorMessage);
         return false;
@@ -295,22 +296,17 @@ bool AccountViewModel::changePassword(const QString &currentPin, const QString &
         return false;
     }
     
-    // 使用 Model 层验证密码修改
-    OperationResult result = m_accountModel.validatePinChange(m_cardNumber, currentPin, newPin, confirmPin);
-    if (!result.success) {
-        setErrorMessage(result.errorMessage);
-        return false;
-    }
-    
-    // 执行密码修改
-    if (m_accountModel.changePin(m_cardNumber, currentPin, newPin)) {
+    // 使用 Model 层处理完整的密码修改逻辑
+    OperationResult result = m_accountModel.performPinChange(m_cardNumber, currentPin, newPin, confirmPin);
+    if (result.success) {
         // 记录交易
         recordTransaction(TransactionType::Other, 0.0, balance(), "修改PIN码成功");
         
+        // 通知UI
         emit transactionCompleted(true, "PIN码修改成功");
         return true;
     } else {
-        setErrorMessage("PIN码修改失败，当前PIN码不正确");
+        setErrorMessage(result.errorMessage);
         return false;
     }
 }
