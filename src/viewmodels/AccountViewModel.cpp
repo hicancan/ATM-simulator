@@ -405,8 +405,8 @@ bool AccountViewModel::changePassword(const QString &currentPin, const QString &
         return false;
     }
 
-    // 调用 Model 层处理完整的 PIN 码修改逻辑
-    OperationResult result = m_accountModel.performPinChange(m_cardNumber, currentPin, newPin, confirmPin);
+    // 调用 Model 层直接使用changePin方法修改PIN码
+    OperationResult result = m_accountModel.changePin(m_cardNumber, currentPin, newPin, confirmPin);
     if (result.success) {
         // 记录交易
         recordTransaction(TransactionType::Other, 0.0, balance(), "修改PIN码成功");

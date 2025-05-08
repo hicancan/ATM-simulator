@@ -152,7 +152,10 @@ public:
                            const QString &description, const QString &targetCard = QString());
 
     /**
-     * @brief 执行取款金额操作
+     * @brief 执行取款操作
+     * 
+     * 验证取款操作并执行账户余额的扣除。
+     *
      * @param cardNumber 卡号
      * @param amount 取款金额
      * @return 操作结果 (成功或失败及错误信息)
@@ -160,7 +163,10 @@ public:
     OperationResult withdrawAmount(const QString &cardNumber, double amount);
 
     /**
-     * @brief 执行存款金额操作
+     * @brief 执行存款操作
+     * 
+     * 验证存款操作并执行账户余额的增加。
+     *
      * @param cardNumber 卡号
      * @param amount 存款金额
      * @return 操作结果 (成功或失败及错误信息)
@@ -168,13 +174,64 @@ public:
     OperationResult depositAmount(const QString &cardNumber, double amount);
 
     /**
-     * @brief 执行转账金额操作
+     * @brief 执行转账操作
+     * 
+     * 验证转账操作并执行源账户余额的扣除和目标账户余额的增加。
+     *
      * @param fromCardNumber 源卡号
      * @param toCardNumber 目标卡号
      * @param amount 转账金额
      * @return 操作结果 (成功或失败及错误信息)
      */
     OperationResult transferAmount(const QString &fromCardNumber, const QString &toCardNumber, double amount);
+
+    /**
+     * @brief 修改账户 PIN 码
+     * 
+     * 验证PIN码修改操作并更新账户的PIN码。
+     *
+     * @param cardNumber 卡号
+     * @param currentPin 当前 PIN 码
+     * @param newPin 新 PIN 码
+     * @param confirmPin 确认新 PIN 码
+     * @return 操作结果 (成功或失败及错误信息)
+     */
+    OperationResult changePin(const QString &cardNumber, const QString &currentPin, 
+                              const QString &newPin, const QString &confirmPin = QString());
+
+    /**
+     * @brief 执行完整的登录流程
+     *
+     * 验证凭据并返回登录结果及相关账户信息。
+     *
+     * @param cardNumber 卡号
+     * @param pin PIN 码
+     * @return 登录结果结构体
+     */
+    LoginResult performLogin(const QString &cardNumber, const QString &pin);
+    
+    /**
+     * @brief 执行完整的管理员登录流程
+     *
+     * 验证管理员凭据并返回登录结果。
+     *
+     * @param cardNumber 卡号
+     * @param pin PIN 码
+     * @return 登录结果结构体
+     */
+    LoginResult performAdminLogin(const QString &cardNumber, const QString &pin);
+
+    // --- 验证方法 ---
+    /**
+     * @brief 验证账户凭据
+     *
+     * 检查卡号和 PIN 是否匹配且账户未被锁定。
+     *
+     * @param cardNumber 卡号
+     * @param pin PIN 码
+     * @return 操作结果 (成功或失败及错误信息)
+     */
+    OperationResult validateCredentials(const QString &cardNumber, const QString &pin);
 
     /**
      * @brief 验证登录操作
@@ -193,26 +250,6 @@ public:
     OperationResult validateAdminLogin(const QString &cardNumber, const QString &pin);
 
     /**
-     * @brief 修改账户 PIN 码
-     * @param cardNumber 卡号
-     * @param oldPin 旧 PIN 码
-     * @param newPin 新 PIN 码
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin);
-
-    // --- 验证方法 ---
-    /**
-     * @brief 验证账户凭据
-     *
-     * 检查卡号和 PIN 是否匹配且账户未被锁定。
-     *
-     * @param cardNumber 卡号
-     * @param pin PIN 码
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult validateCredentials(const QString &cardNumber, const QString &pin);
-    /**
      * @brief 验证取款操作
      *
      * 检查账户是否存在、未锁定、余额充足且未超限额。
@@ -222,6 +259,7 @@ public:
      * @return 操作结果 (成功或失败及错误信息)
      */
     OperationResult validateWithdrawal(const QString &cardNumber, double amount);
+    
     /**
      * @brief 验证存款操作
      *
@@ -232,6 +270,7 @@ public:
      * @return 操作结果 (成功或失败及错误信息)
      */
     OperationResult validateDeposit(const QString &cardNumber, double amount);
+    
     /**
      * @brief 验证转账操作
      *
@@ -243,6 +282,7 @@ public:
      * @return 操作结果 (成功或失败及错误信息)
      */
     OperationResult validateTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount);
+    
     /**
      * @brief 验证 PIN 码修改操作
      *
@@ -254,7 +294,30 @@ public:
      * @param confirmPin 确认新 PIN 码
      * @return 操作结果 (成功或失败及错误信息)
      */
-    OperationResult validatePinChange(const QString &cardNumber, const QString &currentPin, const QString &newPin, const QString &confirmPin);
+    OperationResult validatePinChange(const QString &cardNumber, const QString &currentPin, 
+                                     const QString &newPin, const QString &confirmPin);
+
+    /**
+     * @brief 验证目标账户（转账时使用）
+     *
+     * 检查源账户和目标账户是否存在，且目标账户未被锁定。
+     *
+     * @param sourceCard 源卡号
+     * @param targetCard 目标卡号
+     * @return 操作结果 (成功或失败及错误信息)
+     */
+    OperationResult validateTargetAccount(const QString &sourceCard, const QString &targetCard);
+    
+    /**
+     * @brief 验证管理员操作权限
+     *
+     * 检查给定卡号是否为管理员账户。
+     *
+     * @param cardNumber 卡号
+     * @return 操作结果 (成功或失败及错误信息)
+     */
+    OperationResult validateAdminOperation(const QString &cardNumber);
+
     /**
      * @brief 验证创建账户参数
      *
@@ -270,6 +333,7 @@ public:
      */
     OperationResult validateCreateAccount(const QString &cardNumber, const QString &pin, const QString &holderName,
                                       double balance, double withdrawLimit, bool isAdmin);
+                                      
     /**
      * @brief 验证更新账户参数
      *
@@ -283,91 +347,105 @@ public:
      */
     OperationResult validateUpdateAccount(const QString &cardNumber, const QString &holderName,
                                       double balance, double withdrawLimit);
-    /**
-     * @brief 验证目标账户（转账时使用）
-     *
-     * 检查源账户和目标账户是否存在，且目标账户未被锁定。
-     *
-     * @param sourceCard 源卡号
-     * @param targetCard 目标卡号
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult validateTargetAccount(const QString &sourceCard, const QString &targetCard);
-    /**
-     * @brief 验证管理员操作权限
-     *
-     * 检查给定卡号是否为管理员账户。
-     *
-     * @param cardNumber 卡号
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult validateAdminOperation(const QString &cardNumber);
 
+    // --- 数据访问方法 ---
+    /**
+     * @brief 检查账户是否存在
+     * @param cardNumber 卡号
+     * @return 如果账户存在返回 true，否则返回 false
+     */
+    bool accountExists(const QString &cardNumber) const;
+    
+    /**
+     * @brief 获取账户持卡人姓名
+     * @param cardNumber 卡号
+     * @return 持卡人姓名，如果账户不存在返回空字符串
+     */
+    QString getHolderName(const QString &cardNumber) const;
+    
+    /**
+     * @brief 获取账户余额
+     * @param cardNumber 卡号
+     * @return 账户余额，如果账户不存在返回 0.0
+     */
+    double getBalance(const QString &cardNumber) const;
+    
+    /**
+     * @brief 获取账户取款限额
+     * @param cardNumber 卡号
+     * @return 取款限额，如果账户不存在返回 0.0
+     */
+    double getWithdrawLimit(const QString &cardNumber) const;
+    
+    /**
+     * @brief 检查账户是否被锁定
+     * @param cardNumber 卡号
+     * @return 如果账户被锁定返回 true，否则返回 false
+     */
+    bool isAccountLocked(const QString &cardNumber) const;
+    
+    /**
+     * @brief 检查账户是否为管理员账户
+     * @param cardNumber 卡号
+     * @return 如果是管理员账户返回 true，否则返回 false
+     */
+    bool isAdmin(const QString &cardNumber) const;
+    
+    /**
+     * @brief 获取目标账户信息（转账时用于显示）
+     *
+     * 验证目标账户是否存在并返回其持卡人姓名。
+     *
+     * @param cardNumber 当前用户卡号
+     * @param targetCardNumber 目标卡号
+     * @return 目标账户持卡人姓名，如果账户不存在或验证失败返回空字符串
+     */
+    QString getTargetAccountInfo(const QString &cardNumber, const QString &targetCardNumber);
+    
+    /**
+     * @brief 获取所有账户列表
+     * @return 包含所有 Account 结构体的 QVector
+     */
+    QVector<Account> getAllAccounts() const;
 
-    // --- 账户操作方法 (执行实际的状态改变) ---
+    // --- 账户管理方法 (管理员功能) ---
     /**
-     * @brief 执行取款操作
-     *
-     * 在验证成功后执行账户余额的扣除。
-     *
-     * @param cardNumber 卡号
-     * @param amount 取款金额
+     * @brief 创建账户
+     * @param account 账户数据结构
      * @return 操作结果 (成功或失败及错误信息)
      */
-    OperationResult performWithdrawal(const QString &cardNumber, double amount);
+    OperationResult createAccount(const Account &account);
+    
     /**
-     * @brief 执行存款操作
-     *
-     * 在验证成功后执行账户余额的增加。
-     *
-     * @param cardNumber 卡号
-     * @param amount 存款金额
+     * @brief 更新账户
+     * @param account 账户数据结构
      * @return 操作结果 (成功或失败及错误信息)
      */
-    OperationResult performDeposit(const QString &cardNumber, double amount);
+    OperationResult updateAccount(const Account &account);
+    
     /**
-     * @brief 执行转账操作
-     *
-     * 在验证成功后执行源账户余额的扣除和目标账户余额的增加。
-     *
-     * @param fromCardNumber 源卡号
-     * @param toCardNumber 目标卡号
-     * @param amount 转账金额
+     * @brief 删除账户
+     * @param cardNumber 卡号
      * @return 操作结果 (成功或失败及错误信息)
      */
-    OperationResult performTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount);
+    OperationResult deleteAccount(const QString &cardNumber);
+    
     /**
-     * @brief 执行 PIN 码修改操作
-     *
-     * 在验证成功后更新账户的 PIN 码。
-     *
+     * @brief 设置账户锁定状态
      * @param cardNumber 卡号
-     * @param currentPin 当前 PIN 码
-     * @param newPin 新 PIN 码
-     * @param confirmPin 确认新 PIN 码
+     * @param locked 是否锁定
      * @return 操作结果 (成功或失败及错误信息)
      */
-    OperationResult performPinChange(const QString &cardNumber, const QString &currentPin, const QString &newPin, const QString &confirmPin);
+    OperationResult setAccountLockStatus(const QString &cardNumber, bool locked);
+    
     /**
-     * @brief 执行完整的登录流程
-     *
-     * 验证凭据并返回登录结果及相关账户信息。
-     *
+     * @brief 设置账户取款限额
      * @param cardNumber 卡号
-     * @param pin PIN 码
-     * @return 登录结果结构体
+     * @param limit 取款限额
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    LoginResult performLogin(const QString &cardNumber, const QString &pin);
-    /**
-     * @brief 执行完整的管理员登录流程
-     *
-     * 验证管理员凭据并返回登录结果。
-     *
-     * @param cardNumber 卡号
-     * @param pin PIN 码
-     * @return 登录结果结构体
-     */
-    LoginResult performAdminLogin(const QString &cardNumber, const QString &pin);
+    OperationResult setWithdrawLimit(const QString &cardNumber, double limit);
+    
     /**
      * @brief 重置账户 PIN 码 (管理员功能)
      *
@@ -378,6 +456,7 @@ public:
      * @return 操作结果 (成功或失败及错误信息)
      */
     OperationResult resetPin(const QString &cardNumber, const QString &newPin);
+    
     /**
      * @brief 从 ViewModel 更新账户信息
      *
@@ -393,100 +472,6 @@ public:
     OperationResult updateAccountFromViewModel(const QString &cardNumber, const QString &holderName,
                                            double balance, double withdrawLimit, bool isLocked);
 
-
-    // --- 数据访问方法 ---
-    /**
-     * @brief 检查账户是否存在
-     * @param cardNumber 卡号
-     * @return 如果账户存在返回 true，否则返回 false
-     */
-    bool accountExists(const QString &cardNumber) const;
-    /**
-     * @brief 获取账户持卡人姓名
-     * @param cardNumber 卡号
-     * @return 持卡人姓名，如果账户不存在返回空字符串
-     */
-    QString getAccountHolderName(const QString &cardNumber) const;
-     /**
-     * @brief 获取账户余额
-     * @param cardNumber 卡号
-     * @return 账户余额，如果账户不存在返回 0.0
-     */
-    double getBalance(const QString &cardNumber) const;
-     /**
-     * @brief 获取账户持卡人姓名
-     * @param cardNumber 卡号
-     * @return 持卡人姓名，如果账户不存在返回空字符串
-     */
-    QString getHolderName(const QString &cardNumber) const;
-    /**
-     * @brief 获取账户取款限额
-     * @param cardNumber 卡号
-     * @return 取款限额，如果账户不存在返回 0.0
-     */
-    double getWithdrawLimit(const QString &cardNumber) const;
-    /**
-     * @brief 检查账户是否被锁定
-     * @param cardNumber 卡号
-     * @return 如果账户被锁定返回 true，否则返回 false
-     */
-    bool isAccountLocked(const QString &cardNumber) const;
-    /**
-     * @brief 检查账户是否为管理员账户
-     * @param cardNumber 卡号
-     * @return 如果是管理员账户返回 true，否则返回 false
-     */
-    bool isAdmin(const QString &cardNumber) const;
-    /**
-     * @brief 获取目标账户信息（转账时用于显示）
-     *
-     * 验证目标账户是否存在并返回其持卡人姓名。
-     *
-     * @param cardNumber 当前用户卡号
-     * @param targetCardNumber 目标卡号
-     * @return 目标账户持卡人姓名，如果账户不存在或验证失败返回空字符串
-     */
-    QString getTargetAccountInfo(const QString &cardNumber, const QString &targetCardNumber);
-    /**
-     * @brief 获取所有账户列表
-     * @return 包含所有 Account 结构体的 QVector
-     */
-    QVector<Account> getAllAccounts() const;
-
-    // --- 账户管理方法 (管理员功能) ---
-    /**
-     * @brief 创建账户
-     * @param account 账户数据结构
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult createAccount(const Account &account);
-    /**
-     * @brief 更新账户
-     * @param account 账户数据结构
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult updateAccount(const Account &account);
-    /**
-     * @brief 删除账户
-     * @param cardNumber 卡号
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult deleteAccount(const QString &cardNumber);
-    /**
-     * @brief 设置账户锁定状态
-     * @param cardNumber 卡号
-     * @param locked 是否锁定
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult setAccountLockStatus(const QString &cardNumber, bool locked);
-    /**
-     * @brief 设置账户取款限额
-     * @param cardNumber 卡号
-     * @param limit 取款限额
-     * @return 操作结果 (成功或失败及错误信息)
-     */
-    OperationResult setWithdrawLimit(const QString &cardNumber, double limit);
-
     // --- 预测方法 ---
     /**
      * @brief 预测账户余额
@@ -499,6 +484,7 @@ public:
      * @return 预测的余额，如果无法预测返回当前余额
      */
     double predictBalance(const QString &cardNumber, const TransactionModel* transactionModel, int daysInFuture = 7) const;
+    
     /**
      * @brief 计算预测余额（包含验证逻辑）
      *
@@ -522,6 +508,7 @@ public:
      * @return 如果成功保存返回 true，否则返回 false
      */
     bool saveAccounts(const QString &filename = "accounts.json");
+    
     /**
      * @brief 从文件加载账户数据
      * @param filename 文件名 (默认为 accounts.json)
@@ -536,12 +523,14 @@ public:
      * @param account 要添加的 Account 对象
      */
     void addAccount(const Account &account);
+    
     /**
      * @brief 初始化测试账户数据
      *
      * 如果数据文件不存在，则创建一些预设的测试账户。
      */
     void initializeTestAccounts();
+    
     /**
      * @brief 将 Account 对象转换为 QVariantMap
      *
@@ -551,6 +540,7 @@ public:
      * @return 对应的 QVariantMap
      */
     QVariantMap accountToVariantMap(const Account &account) const;
+    
     /**
      * @brief 获取所有账户并转换为 QVariantList
      *
@@ -574,6 +564,7 @@ private:
      * @return 账户指针，如果未找到返回 nullptr
      */
     Account* findAccount(const QString &cardNumber);
+    
     /**
      * @brief 根据卡号查找账户（常量版本）
      * @param cardNumber 卡号
