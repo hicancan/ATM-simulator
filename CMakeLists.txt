@@ -17,6 +17,14 @@ set(SOURCE_FILES
     src/models/AccountModel.cpp
     src/models/TransactionModel.cpp
     src/models/PrinterModel.cpp
+    src/models/Account.cpp
+    src/models/OperationResult.cpp
+    src/models/LoginResult.cpp
+    src/models/JsonAccountRepository.cpp
+    src/models/AccountValidator.cpp
+    src/models/AccountService.cpp
+    src/models/AdminService.cpp
+    src/models/AccountAnalyticsService.cpp
     src/viewmodels/AccountViewModel.cpp
     src/viewmodels/TransactionViewModel.cpp
     src/viewmodels/PrinterViewModel.cpp
@@ -27,6 +35,15 @@ set(HEADER_FILES
     src/models/AccountModel.h
     src/models/TransactionModel.h
     src/models/PrinterModel.h
+    src/models/Account.h
+    src/models/OperationResult.h
+    src/models/LoginResult.h
+    src/models/IAccountRepository.h
+    src/models/JsonAccountRepository.h
+    src/models/AccountValidator.h
+    src/models/AccountService.h
+    src/models/AdminService.h
+    src/models/AccountAnalyticsService.h
     src/viewmodels/AccountViewModel.h
     src/viewmodels/TransactionViewModel.h
     src/viewmodels/PrinterViewModel.h

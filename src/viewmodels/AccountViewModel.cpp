@@ -367,7 +367,7 @@ bool AccountViewModel::validateTargetCard(const QString &targetCard)
     }
 
     // 调用 Model 层专门验证目标账户的方法
-    OperationResult result = m_accountModel.validateTargetAccount(m_cardNumber, targetCard);
+    OperationResult result = m_accountModel.validateTargetAccount(targetCard);
     if (!result.success) {
         setErrorMessage(result.errorMessage);
         return false;
@@ -384,7 +384,14 @@ bool AccountViewModel::validateTargetCard(const QString &targetCard)
 QString AccountViewModel::getTargetCardHolderName(const QString &targetCard)
 {
     // 调用 Model 层获取目标账户信息
-    return m_accountModel.getTargetAccountInfo(m_cardNumber, targetCard);
+    QString holderName;
+    bool isLocked;
+    
+    if (m_accountModel.getTargetAccountInfo(targetCard, holderName, isLocked)) {
+        return holderName;
+    }
+    
+    return QString();
 }
 
 /**
@@ -523,7 +530,7 @@ void AccountViewModel::calculatePredictedBalance(int daysInFuture)
 
     // 调用 Model 层验证和计算预测余额
     OperationResult result = m_accountModel.calculatePredictedBalance(
-        m_cardNumber, m_transactionModel, daysInFuture, newPredictedBalance);
+        m_cardNumber, daysInFuture, newPredictedBalance);
 
     // 如果计算失败，输出警告并可能重置预测余额
     if (!result.success) {
@@ -603,7 +610,7 @@ bool AccountViewModel::createAccount(const QString &cardNumber, const QString &p
     account.isAdmin = isAdmin;
 
     // 调用 Model 层创建账户
-    result = m_accountModel.createAccount(account);
+    result = m_accountModel.createAccount(cardNumber, pin, holderName, balance, withdrawLimit, isAdmin);
     if (result.success) {
         emit accountsChanged(); // 通知 UI 账户列表可能已更改
         return true;
@@ -634,7 +641,7 @@ bool AccountViewModel::updateAccount(const QString &cardNumber, const QString &h
     }
 
     // 调用 Model 层方法直接更新账户
-    OperationResult result = m_accountModel.updateAccountFromViewModel(cardNumber, holderName, balance, withdrawLimit, isLocked);
+    OperationResult result = m_accountModel.updateAccount(cardNumber, holderName, balance, withdrawLimit, isLocked);
     if (result.success) {
         emit accountsChanged(); // 通知 UI 账户列表可能已更改
 
