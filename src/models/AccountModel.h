@@ -155,26 +155,26 @@ public:
      * @brief 执行取款金额操作
      * @param cardNumber 卡号
      * @param amount 取款金额
-     * @return 如果成功取款返回 true，否则返回 false
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool withdrawAmount(const QString &cardNumber, double amount);
+    OperationResult withdrawAmount(const QString &cardNumber, double amount);
 
     /**
      * @brief 执行存款金额操作
      * @param cardNumber 卡号
      * @param amount 存款金额
-     * @return 如果成功存款返回 true，否则返回 false
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool depositAmount(const QString &cardNumber, double amount);
+    OperationResult depositAmount(const QString &cardNumber, double amount);
 
     /**
      * @brief 执行转账金额操作
      * @param fromCardNumber 源卡号
      * @param toCardNumber 目标卡号
      * @param amount 转账金额
-     * @return 如果成功转账返回 true，否则返回 false
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool transferAmount(const QString &fromCardNumber, const QString &toCardNumber, double amount);
+    OperationResult transferAmount(const QString &fromCardNumber, const QString &toCardNumber, double amount);
 
     /**
      * @brief 验证登录操作
@@ -197,16 +197,9 @@ public:
      * @param cardNumber 卡号
      * @param oldPin 旧 PIN 码
      * @param newPin 新 PIN 码
-     * @return 如果成功修改返回 true，否则返回 false
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin);
-
-    /**
-     * @brief 设置账户锁定状态
-     * @param cardNumber 卡号
-     * @param locked 是否锁定
-     */
-    void lockAccount(const QString &cardNumber, bool locked);
+    OperationResult changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin);
 
     // --- 验证方法 ---
     /**
@@ -216,9 +209,9 @@ public:
      *
      * @param cardNumber 卡号
      * @param pin PIN 码
-     * @return 验证结果
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool validateCredentials(const QString &cardNumber, const QString &pin);
+    OperationResult validateCredentials(const QString &cardNumber, const QString &pin);
     /**
      * @brief 验证取款操作
      *
@@ -462,37 +455,37 @@ public:
 
     // --- 账户管理方法 (管理员功能) ---
     /**
-     * @brief 创建新账户
-     * @param account 要创建的 Account 对象
-     * @return 如果成功创建返回 true，否则返回 false
+     * @brief 创建账户
+     * @param account 账户数据结构
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool createAccount(const Account &account);
+    OperationResult createAccount(const Account &account);
     /**
-     * @brief 更新现有账户信息
-     * @param account 包含更新后信息的 Account 对象
-     * @return 如果成功更新返回 true，否则返回 false
+     * @brief 更新账户
+     * @param account 账户数据结构
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool updateAccount(const Account &account);
+    OperationResult updateAccount(const Account &account);
     /**
      * @brief 删除账户
-     * @param cardNumber 要删除的账户卡号
-     * @return 如果成功删除返回 true，否则返回 false
+     * @param cardNumber 卡号
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool deleteAccount(const QString &cardNumber);
+    OperationResult deleteAccount(const QString &cardNumber);
     /**
      * @brief 设置账户锁定状态
      * @param cardNumber 卡号
      * @param locked 是否锁定
-     * @return 如果成功设置返回 true，否则返回 false
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool setAccountLockStatus(const QString &cardNumber, bool locked);
+    OperationResult setAccountLockStatus(const QString &cardNumber, bool locked);
     /**
      * @brief 设置账户取款限额
      * @param cardNumber 卡号
-     * @param limit 新的取款限额
-     * @return 如果成功设置返回 true，否则返回 false
+     * @param limit 取款限额
+     * @return 操作结果 (成功或失败及错误信息)
      */
-    bool setWithdrawLimit(const QString &cardNumber, double limit);
+    OperationResult setWithdrawLimit(const QString &cardNumber, double limit);
 
     // --- 预测方法 ---
     /**

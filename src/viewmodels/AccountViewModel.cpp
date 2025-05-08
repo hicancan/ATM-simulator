@@ -132,30 +132,41 @@ bool AccountViewModel::isAdmin() const
  */
 bool AccountViewModel::login(const QString &pin)
 {
-    // 清除之前的错误信息
     clearError();
 
-    // 调用 Model 层处理完整的登录逻辑
-    LoginResult result = m_accountModel.performLogin(m_cardNumber, pin);
+    // 验证卡号是否已设置
+    if (m_cardNumber.isEmpty()) {
+        setErrorMessage("请先输入卡号");
+        return false;
+    }
 
-    if (result.success) {
-        // 根据登录结果更新视图状态
+    // 调用 Model 层验证账户凭据
+    OperationResult result = m_accountModel.validateCredentials(m_cardNumber, pin);
+    if (!result.success) {
+        setErrorMessage(result.errorMessage);
+        return false;
+    }
+
+    // 登录成功，执行登录过程获取账户详情
+    LoginResult loginResult = m_accountModel.performLogin(m_cardNumber, pin);
+    if (loginResult.success) {
         m_isLoggedIn = true;
-        m_isAdmin = result.isAdmin;
+        m_isAdmin = loginResult.isAdmin;
+        
+        // 记录登录交易
+        recordTransaction(TransactionType::Other, 0.0, loginResult.balance, "登录系统");
 
-        // 发出信号通知 UI 更新相关属性
+        // 发出信号通知 UI
         emit isLoggedInChanged();
         emit holderNameChanged();
         emit balanceChanged();
         emit withdrawLimitChanged();
         emit isAdminChanged();
-
-        // 记录登录交易
-        recordTransaction(TransactionType::Other, 0.0, balance(), "登录成功");
+        
+        qDebug() << "成功登录系统，卡号:" << m_cardNumber << "，管理员权限:" << m_isAdmin;
         return true;
     } else {
-        // 处理登录失败
-        setErrorMessage(result.errorMessage);
+        setErrorMessage(loginResult.errorMessage);
         return false;
     }
 }
@@ -168,62 +179,11 @@ bool AccountViewModel::login(const QString &pin)
  */
 bool AccountViewModel::loginWithCard(const QString &cardNumber, const QString &pin)
 {
-    // 清除之前的错误信息
-    clearError();
-
-    // 特殊处理管理员登录
-    if (cardNumber == "9999888877776666") {
-        LoginResult result = m_accountModel.performAdminLogin(cardNumber, pin);
-        if (result.success) {
-            // 设置当前卡号
-            m_cardNumber = cardNumber;
-            emit cardNumberChanged();
-
-            // 更新视图状态
-            m_isLoggedIn = true;
-            m_isAdmin = true;
-
-            // 发出信号通知 UI 更新
-            emit isLoggedInChanged();
-            emit holderNameChanged(); // 管理员账户也可能有姓名
-            emit balanceChanged();    // 管理员账户也可能有余额
-            emit withdrawLimitChanged(); // 管理员账户也可能有取款限额
-            emit isAdminChanged();
-
-            // 记录登录交易
-            recordTransaction(TransactionType::Other, 0.0, balance(), "管理员登录成功");
-            return true;
-        } else {
-            setErrorMessage(result.errorMessage);
-            return false;
-        }
-    }
-
-    // 处理普通账户登录
-    LoginResult result = m_accountModel.performLogin(cardNumber, pin);
-    if (result.success) {
-        // 设置当前卡号
-        m_cardNumber = cardNumber;
-        emit cardNumberChanged();
-
-        // 更新视图状态
-        m_isLoggedIn = true;
-        m_isAdmin = result.isAdmin;
-
-        // 发出信号通知 UI 更新
-        emit isLoggedInChanged();
-        emit holderNameChanged();
-        emit balanceChanged();
-        emit withdrawLimitChanged();
-        emit isAdminChanged();
-
-        // 记录登录交易
-        recordTransaction(TransactionType::Other, 0.0, balance(), "登录成功");
-        return true;
-    } else {
-        setErrorMessage(result.errorMessage);
-        return false;
-    }
+    // 先设置卡号
+    setCardNumber(cardNumber);
+    
+    // 然后使用通用登录方法
+    return login(pin);
 }
 
 /**
@@ -251,7 +211,7 @@ bool AccountViewModel::withdraw(double amount)
     }
 
     // 调用 Model 层执行取款操作
-    result = m_accountModel.performWithdrawal(m_cardNumber, amount);
+    result = m_accountModel.withdrawAmount(m_cardNumber, amount);
     if (result.success) {
         // 更新余额并通知 UI
         emit balanceChanged();
@@ -295,7 +255,7 @@ bool AccountViewModel::deposit(double amount)
     }
 
     // 调用 Model 层执行存款操作
-    result = m_accountModel.performDeposit(m_cardNumber, amount);
+    result = m_accountModel.depositAmount(m_cardNumber, amount);
     if (result.success) {
         // 更新余额并通知 UI
         emit balanceChanged();
@@ -340,7 +300,7 @@ bool AccountViewModel::transfer(const QString &targetCard, double amount)
     }
 
     // 调用 Model 层执行转账操作
-    result = m_accountModel.performTransfer(m_cardNumber, targetCard, amount);
+    result = m_accountModel.transferAmount(m_cardNumber, targetCard, amount);
     if (result.success) {
         // 更新源账户余额并通知 UI
         emit balanceChanged();
@@ -643,14 +603,14 @@ bool AccountViewModel::createAccount(const QString &cardNumber, const QString &p
     account.isAdmin = isAdmin;
 
     // 调用 Model 层创建账户
-    bool success = m_accountModel.createAccount(account);
-    if (success) {
+    result = m_accountModel.createAccount(account);
+    if (result.success) {
         emit accountsChanged(); // 通知 UI 账户列表可能已更改
+        return true;
     } else {
-        setErrorMessage("创建账户失败，可能卡号已存在");
+        setErrorMessage(result.errorMessage.isEmpty() ? "创建账户失败，可能卡号已存在" : result.errorMessage);
+        return false;
     }
-
-    return success;
 }
 
 /**
@@ -717,14 +677,14 @@ bool AccountViewModel::deleteAccount(const QString &cardNumber)
     }
 
     // 调用 Model 层删除账户
-    bool success = m_accountModel.deleteAccount(cardNumber);
-    if (success) {
+    OperationResult result = m_accountModel.deleteAccount(cardNumber);
+    if (result.success) {
         emit accountsChanged(); // 通知 UI 账户列表可能已更改
+        return true;
     } else {
-        setErrorMessage("删除账户失败，可能卡号不存在");
+        setErrorMessage(result.errorMessage.isEmpty() ? "删除账户失败，可能卡号不存在" : result.errorMessage);
+        return false;
     }
-
-    return success;
 }
 
 /**
@@ -784,14 +744,14 @@ bool AccountViewModel::setAccountLockStatus(const QString &cardNumber, bool lock
     }
 
     // 调用 Model 层设置锁定状态
-    bool success = m_accountModel.setAccountLockStatus(cardNumber, locked);
-    if (success) {
+    OperationResult result = m_accountModel.setAccountLockStatus(cardNumber, locked);
+    if (result.success) {
         emit accountsChanged(); // 通知 UI 账户列表可能已更改
+        return true;
     } else {
-        setErrorMessage(locked ? "锁定账户失败" : "解锁账户失败");
+        setErrorMessage(result.errorMessage.isEmpty() ? (locked ? "锁定账户失败" : "解锁账户失败") : result.errorMessage);
+        return false;
     }
-
-    return success;
 }
 
 /**
@@ -818,17 +778,17 @@ bool AccountViewModel::setWithdrawLimit(const QString &cardNumber, double limit)
     }
 
     // 调用 Model 层设置取款限额
-    bool success = m_accountModel.setWithdrawLimit(cardNumber, limit);
-    if (success) {
+    OperationResult result = m_accountModel.setWithdrawLimit(cardNumber, limit);
+    if (result.success) {
         emit accountsChanged(); // 通知 UI 账户列表可能已更改
 
         // 如果更新的是当前登录用户，刷新 UI 数据
         if (cardNumber == m_cardNumber) {
             emit withdrawLimitChanged();
         }
+        return true;
     } else {
-        setErrorMessage("设置取款限额失败");
+        setErrorMessage(result.errorMessage.isEmpty() ? "设置取款限额失败" : result.errorMessage);
+        return false;
     }
-
-    return success;
 }

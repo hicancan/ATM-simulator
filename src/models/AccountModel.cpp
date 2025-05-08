@@ -104,72 +104,89 @@ void AccountModel::recordTransaction(const QString &cardNumber, TransactionType 
  *
  * @param cardNumber 卡号
  * @param pin PIN 码
- * @return 验证结果
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::validateCredentials(const QString &cardNumber, const QString &pin)
+OperationResult AccountModel::validateCredentials(const QString &cardNumber, const QString &pin)
 {
     const Account* account = findAccount(cardNumber);
     if (!account) {
         qDebug() << "验证失败: 卡号不存在:" << cardNumber;
-        return false;  // 卡号未找到
+        return OperationResult::Failure("卡号不存在");
     }
 
     if (account->isLocked) {
         qDebug() << "验证失败: 账户已锁定:" << cardNumber;
-        return false;  // 账户已锁定
+        return OperationResult::Failure("该账户已被锁定，请联系管理员");
     }
 
     bool pinMatches = (account->pin == pin);
     qDebug() << "PIN验证结果:" << pinMatches << "输入PIN:" << pin << "存储PIN:" << account->pin;
-    return pinMatches;
+    
+    if (!pinMatches) {
+        return OperationResult::Failure("PIN码不正确");
+    }
+    
+    return OperationResult::Success();
 }
 
 /**
  * @brief 执行取款金额操作
  * @param cardNumber 卡号
  * @param amount 取款金额
- * @return 如果成功取款返回 true，否则返回 false
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::withdrawAmount(const QString &cardNumber, double amount)
+OperationResult AccountModel::withdrawAmount(const QString &cardNumber, double amount)
 {
     Account* account = findAccount(cardNumber);
-    if (!account || account->isLocked) {
-        return false; // 账户未找到或已锁定
+    if (!account) {
+        return OperationResult::Failure("卡号不存在");
+    }
+    
+    if (account->isLocked) {
+        return OperationResult::Failure("该账户已被锁定，请联系管理员");
     }
 
-    if (amount <= 0 || amount > account->withdrawLimit) {
-        return false;  // 无效金额或超出限额
+    if (amount <= 0) {
+        return OperationResult::Failure("取款金额必须大于0");
+    }
+    
+    if (amount > account->withdrawLimit) {
+        return OperationResult::Failure(QString("超出单次取款限额 ￥%1").arg(account->withdrawLimit));
     }
 
     if (account->balance < amount) {
-        return false;  // 余额不足
+        return OperationResult::Failure("余额不足");
     }
 
     account->balance -= amount;
     saveAccounts(); // 操作后保存数据
-    return true;
+    return OperationResult::Success();
 }
 
 /**
  * @brief 执行存款金额操作
  * @param cardNumber 卡号
  * @param amount 存款金额
- * @return 如果成功存款返回 true，否则返回 false
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::depositAmount(const QString &cardNumber, double amount)
+OperationResult AccountModel::depositAmount(const QString &cardNumber, double amount)
 {
     Account* account = findAccount(cardNumber);
-    if (!account || account->isLocked) {
-        return false; // 账户未找到或已锁定
+    if (!account) {
+        return OperationResult::Failure("卡号不存在");
+    }
+    
+    if (account->isLocked) {
+        return OperationResult::Failure("该账户已被锁定，请联系管理员");
     }
 
     if (amount <= 0) {
-        return false;  // 无效金额
+        return OperationResult::Failure("存款金额必须大于0");
     }
 
     account->balance += amount;
     saveAccounts(); // 操作后保存数据
-    return true;
+    return OperationResult::Success();
 }
 
 /**
@@ -177,13 +194,13 @@ bool AccountModel::depositAmount(const QString &cardNumber, double amount)
  * @param fromCardNumber 源卡号
  * @param toCardNumber 目标卡号
  * @param amount 转账金额
- * @return 如果成功转账返回 true，否则返回 false
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::transferAmount(const QString &fromCardNumber, const QString &toCardNumber, double amount)
+OperationResult AccountModel::transferAmount(const QString &fromCardNumber, const QString &toCardNumber, double amount)
 {
     // 检查卡号不能相同
     if (fromCardNumber == toCardNumber) {
-        return false;  // 不能转账给自己
+        return OperationResult::Failure("不能转账给自己");
     }
 
     // 获取源账户和目标账户
@@ -191,21 +208,29 @@ bool AccountModel::transferAmount(const QString &fromCardNumber, const QString &
     Account* toAccount = findAccount(toCardNumber);
 
     // 检查账户是否存在且源账户未锁定
-    if (!fromAccount || fromAccount->isLocked) {
-        return false;  // 源账户不存在或已锁定
+    if (!fromAccount) {
+        return OperationResult::Failure("源账户不存在");
+    }
+    
+    if (fromAccount->isLocked) {
+        return OperationResult::Failure("您的账户已被锁定，请联系管理员");
     }
 
     if (!toAccount) {
-        return false;  // 目标账户不存在
+        return OperationResult::Failure("目标账户不存在");
+    }
+    
+    if (toAccount->isLocked) {
+        return OperationResult::Failure("目标账户已被锁定，无法转账");
     }
 
     // 检查转账金额
     if (amount <= 0) {
-        return false;  // 无效金额
+        return OperationResult::Failure("转账金额必须大于0");
     }
 
     if (fromAccount->balance < amount) {
-        return false;  // 余额不足
+        return OperationResult::Failure("余额不足");
     }
 
     // 执行转账
@@ -213,7 +238,7 @@ bool AccountModel::transferAmount(const QString &fromCardNumber, const QString &
     toAccount->balance += amount;
 
     saveAccounts(); // 操作后保存数据
-    return true;
+    return OperationResult::Success();
 }
 
 /**
@@ -286,45 +311,65 @@ bool AccountModel::isAccountLocked(const QString &cardNumber) const
  * @param cardNumber 卡号
  * @param oldPin 旧 PIN 码
  * @param newPin 新 PIN 码
- * @return 如果成功修改返回 true，否则返回 false
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin)
+OperationResult AccountModel::changePin(const QString &cardNumber, const QString &oldPin, const QString &newPin)
 {
     Account* account = findAccount(cardNumber);
-
-    // 检查账户是否存在且未锁定
-    if (!account || account->isLocked) {
-        return false;
+    if (!account) {
+        return OperationResult::Failure("卡号不存在");
     }
 
-    // 验证旧 PIN 码
+    if (account->isLocked) {
+        return OperationResult::Failure("该账户已被锁定，请联系管理员");
+    }
+
     if (account->pin != oldPin) {
-        return false; // 旧 PIN 码不正确
+        return OperationResult::Failure("当前PIN码不正确");
     }
 
-    // 验证新 PIN 码格式 (必须是 4 位数字)
-    if (newPin.length() != 4 || !newPin.toInt()) {
-        return false; // 无效的新 PIN 码
+    if (newPin.length() < 4 || newPin.length() > 6) {
+        return OperationResult::Failure("新PIN码长度必须在4-6位之间");
     }
 
-    // 更新 PIN 码
+    // 检查PIN是否为纯数字
+    bool isNumeric = true;
+    for (QChar c : newPin) {
+        if (!c.isDigit()) {
+            isNumeric = false;
+            break;
+        }
+    }
+    
+    if (!isNumeric) {
+        return OperationResult::Failure("PIN码只能包含数字");
+    }
+
     account->pin = newPin;
-    saveAccounts(); // 操作后保存数据
-    return true;
+    saveAccounts();
+    return OperationResult::Success();
 }
 
 /**
  * @brief 设置账户锁定状态
  * @param cardNumber 卡号
  * @param locked 是否锁定
+ * @return 操作结果 (成功或失败及错误信息)
  */
-void AccountModel::lockAccount(const QString &cardNumber, bool locked)
+OperationResult AccountModel::setAccountLockStatus(const QString &cardNumber, bool locked)
 {
     Account* account = findAccount(cardNumber);
-    if (account) {
-        account->isLocked = locked;
-        saveAccounts(); // 操作后保存数据
+    if (!account) {
+        return OperationResult::Failure("卡号不存在");
     }
+
+    account->isLocked = locked;
+    saveAccounts();
+    
+    QString statusMessage = locked ? "账户已锁定" : "账户已解锁";
+    qDebug() << statusMessage << "卡号:" << cardNumber;
+    
+    return OperationResult::Success();
 }
 
 /**
@@ -622,106 +667,148 @@ QVector<Account> AccountModel::getAllAccounts() const
 }
 
 /**
- * @brief 创建新账户
- * @param account 要创建的 Account 对象
- * @return 如果成功创建返回 true，否则返回 false
+ * @brief 创建账户
+ * @param account 账户数据结构
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::createAccount(const Account &account)
+OperationResult AccountModel::createAccount(const Account &account)
 {
-    // 检查卡号是否已存在
     if (accountExists(account.cardNumber)) {
-        qWarning() << "创建账户失败: 卡号" << account.cardNumber << "已存在";
-        return false;
+        return OperationResult::Failure("卡号已存在，不能创建重复账户");
     }
 
-    // 添加账户
+    // 验证PIN码格式
+    if (account.pin.length() < 4 || account.pin.length() > 6) {
+        return OperationResult::Failure("PIN码长度必须在4-6位之间");
+    }
+
+    // 检查PIN码是否为纯数字
+    bool isNumeric = true;
+    for (QChar c : account.pin) {
+        if (!c.isDigit()) {
+            isNumeric = false;
+            break;
+        }
+    }
+    
+    if (!isNumeric) {
+        return OperationResult::Failure("PIN码只能包含数字");
+    }
+
+    // 验证余额和取款限额
+    if (account.balance < 0) {
+        return OperationResult::Failure("账户余额不能为负数");
+    }
+
+    if (account.withdrawLimit <= 0) {
+        return OperationResult::Failure("取款限额必须大于0");
+    }
+
     addAccount(account);
-    saveAccounts(); // 创建后保存
-    qDebug() << "成功创建新账户，卡号:" << account.cardNumber;
-    return true;
+    saveAccounts();
+    qDebug() << "已创建新账户，卡号:" << account.cardNumber;
+    
+    return OperationResult::Success();
 }
 
 /**
- * @brief 更新现有账户信息
- * @param account 包含更新后信息的 Account 对象
- * @return 如果成功更新返回 true，否则返回 false
+ * @brief 更新账户
+ * @param account 账户数据结构
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::updateAccount(const Account &account)
+OperationResult AccountModel::updateAccount(const Account &account)
 {
     Account* existingAccount = findAccount(account.cardNumber);
     if (!existingAccount) {
-        qWarning() << "更新账户失败: 卡号" << account.cardNumber << "不存在";
-        return false;
+        return OperationResult::Failure("卡号不存在，无法更新");
+    }
+    
+    // 验证余额和取款限额
+    if (account.balance < 0) {
+        return OperationResult::Failure("账户余额不能为负数");
     }
 
-    // 更新账户详情
-    *existingAccount = account;
-    saveAccounts(); // 更新后保存
-    qDebug() << "成功更新账户信息，卡号:" << account.cardNumber;
-    return true;
+    if (account.withdrawLimit <= 0) {
+        return OperationResult::Failure("取款限额必须大于0");
+    }
+
+    // 保留原始PIN和管理员状态，只更新其他字段
+    existingAccount->holderName = account.holderName;
+    existingAccount->balance = account.balance;
+    existingAccount->withdrawLimit = account.withdrawLimit;
+    existingAccount->isLocked = account.isLocked;
+    
+    saveAccounts();
+    qDebug() << "已更新账户，卡号:" << account.cardNumber;
+    
+    return OperationResult::Success();
 }
 
 /**
  * @brief 删除账户
- * @param cardNumber 要删除的账户卡号
- * @return 如果成功删除返回 true，否则返回 false
- */
-bool AccountModel::deleteAccount(const QString &cardNumber)
-{
-    if (!accountExists(cardNumber)) {
-        qWarning() << "删除账户失败: 卡号" << cardNumber << "不存在";
-        return false;
-    }
-
-    m_accounts.remove(cardNumber);
-    saveAccounts(); // 删除后保存
-    qDebug() << "成功删除账户，卡号:" << cardNumber;
-    return true;
-}
-
-/**
- * @brief 设置账户锁定状态
  * @param cardNumber 卡号
- * @param locked 是否锁定
- * @return 如果成功设置返回 true，否则返回 false
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::setAccountLockStatus(const QString &cardNumber, bool locked)
+OperationResult AccountModel::deleteAccount(const QString &cardNumber)
 {
-    Account* account = findAccount(cardNumber);
-    if (!account) {
-        qWarning() << "设置账户锁定状态失败: 卡号" << cardNumber << "不存在";
-        return false;
+    // 检查账户是否存在
+    if (!accountExists(cardNumber)) {
+        return OperationResult::Failure("卡号不存在，无法删除");
     }
 
-    account->isLocked = locked;
-    saveAccounts(); // 设置后保存
-    qDebug() << "成功" << (locked ? "锁定" : "解锁") << "账户，卡号:" << cardNumber;
-    return true;
+    // 获取账户以检查是否是管理员
+    Account account = m_accounts.value(cardNumber);
+    
+    // 检查是否是最后一个管理员账户，如果是则不允许删除
+    if (account.isAdmin) {
+        int adminCount = 0;
+        for (const auto& acc : m_accounts) {
+            if (acc.isAdmin) {
+                adminCount++;
+            }
+        }
+        
+        if (adminCount <= 1) {
+            return OperationResult::Failure("不能删除系统中的最后一个管理员账户");
+        }
+    }
+
+    // 从账户列表中移除(正确使用QMap的remove方法)
+    m_accounts.remove(cardNumber);
+    saveAccounts();
+    
+    // 如果设置了交易模型，还应清除相关交易记录
+    if (m_transactionModel) {
+        m_transactionModel->clearTransactionsForCard(cardNumber);
+    }
+    
+    qDebug() << "已删除账户，卡号:" << cardNumber;
+    
+    return OperationResult::Success();
 }
 
 /**
  * @brief 设置账户取款限额
  * @param cardNumber 卡号
- * @param limit 新的取款限额
- * @return 如果成功设置返回 true，否则返回 false
+ * @param limit 取款限额
+ * @return 操作结果 (成功或失败及错误信息)
  */
-bool AccountModel::setWithdrawLimit(const QString &cardNumber, double limit)
+OperationResult AccountModel::setWithdrawLimit(const QString &cardNumber, double limit)
 {
     Account* account = findAccount(cardNumber);
     if (!account) {
-        qWarning() << "设置取款限额失败: 卡号" << cardNumber << "不存在";
-        return false;
+        return OperationResult::Failure("卡号不存在");
     }
 
-    if (limit < 0) {
-        qWarning() << "设置取款限额失败: 限额不能为负数";
-        return false;
+    if (limit <= 0) {
+        return OperationResult::Failure("取款限额必须大于0");
     }
 
     account->withdrawLimit = limit;
-    saveAccounts(); // 设置后保存
-    qDebug() << "成功设置取款限额为" << limit << "，卡号:" << cardNumber;
-    return true;
+    saveAccounts();
+    qDebug() << "已设置取款限额:" << limit << "卡号:" << cardNumber;
+    
+    return OperationResult::Success();
 }
 
 // --- 验证方法实现 ---
@@ -1189,7 +1276,8 @@ OperationResult AccountModel::performPinChange(const QString &cardNumber, const 
     }
 
     // 执行密码修改
-    if (changePin(cardNumber, currentPin, newPin)) {
+    OperationResult result = changePin(cardNumber, currentPin, newPin);
+    if (result.success) {
         return OperationResult::Success();
     } else {
         // 理论上验证已通过，不应发生此情况，但为鲁棒性保留
