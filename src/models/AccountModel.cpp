@@ -186,6 +186,20 @@ OperationResult AccountModel::calculatePredictedBalance(const QString &cardNumbe
     return m_analyticsService->calculatePredictedBalance(cardNumber, daysInFuture, outBalance);
 }
 
+OperationResult AccountModel::predictBalanceMultiDays(const QString &cardNumber,
+                                                    const QVector<int> &days,
+                                                    QMap<int, double> &outPredictions) const
+{
+    if (!m_analyticsService) {
+        double currentBalance = getBalance(cardNumber);
+        for (int day : days) {
+            outPredictions[day] = currentBalance;
+        }
+        return OperationResult::Failure("分析服务不可用，返回当前余额");
+    }
+    return m_analyticsService->predictBalanceMultiDays(cardNumber, days, outPredictions);
+}
+
 OperationResult AccountModel::getAccountTrend(const QString &cardNumber,
                                              int days,
                                              QMap<QDate, double> &outIncomeTrend,

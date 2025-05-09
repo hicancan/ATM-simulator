@@ -179,8 +179,25 @@ Page {
                 height: 10  // 减少间距
             }
             
-            // Test account information (for demo purposes)
+            // Test account information link
+            Label {
+                id: accountInfoLink
+                text: "<a href='#'>显示测试账户信息</a>"
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 5
+                font.pixelSize: 14
+                color: "#4b8bf4"
+                
+                onLinkActivated: {
+                    testAccountInfo.visible = !testAccountInfo.visible
+                    text = testAccountInfo.visible ? "<a href='#'>隐藏测试账户信息</a>" : "<a href='#'>显示测试账户信息</a>"
+                }
+            }
+            
+            // Test account information (for demo purposes) - initially hidden
             Rectangle {
+                id: testAccountInfo
+                visible: false
                 color: "#2a2d3a"
                 radius: 5
                 Layout.alignment: Qt.AlignHCenter

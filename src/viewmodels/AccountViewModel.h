@@ -10,6 +10,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QVariantMap>
 #include "../models/AccountModel.h"
 #include "../models/TransactionModel.h" // 包含 TransactionModel 头文件
 #include "../models/AccountValidator.h" // 添加 AccountValidator 头文件
@@ -29,6 +30,7 @@ class AccountViewModel : public QObject
     Q_PROPERTY(QString holderName READ holderName NOTIFY holderNameChanged)
     Q_PROPERTY(double balance READ balance NOTIFY balanceChanged)
     Q_PROPERTY(double predictedBalance READ predictedBalance NOTIFY predictedBalanceChanged)
+    Q_PROPERTY(QVariantMap multiDayPredictions READ multiDayPredictions NOTIFY multiDayPredictionsChanged)
     Q_PROPERTY(double withdrawLimit READ withdrawLimit NOTIFY withdrawLimitChanged)
     Q_PROPERTY(bool isLoggedIn READ isLoggedIn NOTIFY isLoggedInChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
@@ -55,6 +57,7 @@ public:
     QString holderName() const;
     double balance() const;
     double predictedBalance() const;
+    QVariantMap multiDayPredictions() const;
     double withdrawLimit() const;
     bool isLoggedIn() const;
     QString errorMessage() const;
@@ -144,6 +147,12 @@ public:
      * @param daysInFuture 预测未来天数 (默认为 7 天)
      */
     Q_INVOKABLE void calculatePredictedBalance(int daysInFuture = 7);
+    /**
+     * @brief 计算多日期预测余额
+     * 预测未来多个时间点的余额变化趋势
+     * @param days 预测天数列表，如 "7,14,30,90" 字符串形式
+     */
+    Q_INVOKABLE void calculateMultiDayPredictions(const QString &days);
 
     // --- 管理员方法 (可调用) ---
     /**
@@ -210,6 +219,7 @@ signals:
     void holderNameChanged();
     void balanceChanged();
     void predictedBalanceChanged();
+    void multiDayPredictionsChanged();
     void withdrawLimitChanged();
     void isLoggedInChanged();
     void errorMessageChanged();
@@ -248,9 +258,13 @@ private:
     // --- 私有成员变量 (支持 Q_PROPERTY) ---
     QString m_cardNumber;       //!< 当前登录的账户卡号
     QString m_errorMessage;     //!< 当前显示的错误信息
-    bool m_isLoggedIn;          //!< 登录状态
-    double m_predictedBalance;  //!< 预测的账户余额
-    bool m_isAdmin;             //!< 当前登录用户是否为管理员
+    double m_balance;           //!< 当前账户余额
+    double m_predictedBalance;  //!< 预测余额
+    QVariantMap m_multiDayPredictions; //!< 多日期预测余额
+    double m_withdrawLimit;     //!< 取款限额
+    bool m_isLoggedIn;          //!< 是否已登录
+    bool m_isAdmin;             //!< 是否为管理员账户
+    QString m_holderName;       //!< 持卡人姓名
 
     /**
      * @brief 辅助方法：记录交易

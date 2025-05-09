@@ -22,6 +22,12 @@ AccountViewModel::AccountViewModel(QObject *parent)
     , m_isLoggedIn(false)
     , m_predictedBalance(0.0)
     , m_isAdmin(false)
+    , m_cardNumber("")
+    , m_errorMessage("")
+    , m_balance(0.0)
+    , m_withdrawLimit(0.0)
+    , m_holderName("")
+    , m_multiDayPredictions()
 {
     // 构造函数初始化成员变量，无复杂逻辑。
 }
@@ -122,6 +128,24 @@ QString AccountViewModel::errorMessage() const
 bool AccountViewModel::isAdmin() const
 {
     return m_isAdmin;
+}
+
+/**
+ * @brief 获取预测余额属性
+ * @return 预测余额
+ */
+double AccountViewModel::predictedBalance() const
+{
+    return m_predictedBalance;
+}
+
+/**
+ * @brief 获取多日期预测余额属性
+ * @return 保存多个预测日期及对应余额的映射
+ */
+QVariantMap AccountViewModel::multiDayPredictions() const
+{
+    return m_multiDayPredictions;
 }
 
 // --- 可调用方法 (供 QML 调用) ---
@@ -236,7 +260,7 @@ bool AccountViewModel::withdraw(double amount)
         return false;
     }
 
-    // 验证取款金额是否合法
+    // 验证取款参数是否合法
     OperationResult result = m_validator.validateWithdrawal(m_cardNumber, amount);
     if (!result.success) {
         setErrorMessage(result.errorMessage);
@@ -246,10 +270,11 @@ bool AccountViewModel::withdraw(double amount)
     // 执行取款操作
     OperationResult withdrawResult = m_accountModel.withdrawAmount(m_cardNumber, amount);
     if (withdrawResult.success) {
-        // 记录交易
-        recordTransaction(TransactionType::Withdrawal, amount, 
-                         m_accountModel.getBalance(m_cardNumber), 
-                         QString("取款 %1").arg(amount));
+        // 不再需要在此记录交易，AccountService 已经记录了
+        // 移除冗余代码:
+        // recordTransaction(TransactionType::Withdrawal, amount, 
+        //                  m_accountModel.getBalance(m_cardNumber), 
+        //                  "取款");
         
         // 通知余额变化
         emit balanceChanged();
@@ -279,7 +304,7 @@ bool AccountViewModel::deposit(double amount)
         return false;
     }
 
-    // 验证存款金额是否合法
+    // 验证存款参数是否合法
     OperationResult result = m_validator.validateDeposit(m_cardNumber, amount);
     if (!result.success) {
         setErrorMessage(result.errorMessage);
@@ -289,10 +314,11 @@ bool AccountViewModel::deposit(double amount)
     // 执行存款操作
     OperationResult depositResult = m_accountModel.depositAmount(m_cardNumber, amount);
     if (depositResult.success) {
-        // 记录交易
-        recordTransaction(TransactionType::Deposit, amount, 
-                         m_accountModel.getBalance(m_cardNumber), 
-                         QString("存款 %1").arg(amount));
+        // 不再需要在此记录交易，AccountService 已经记录了
+        // 移除冗余代码:
+        // recordTransaction(TransactionType::Deposit, amount, 
+        //                  m_accountModel.getBalance(m_cardNumber), 
+        //                  "存款");
         
         // 通知余额变化
         emit balanceChanged();
@@ -333,12 +359,13 @@ bool AccountViewModel::transfer(const QString &targetCard, double amount)
     // 执行转账操作
     OperationResult transferResult = m_accountModel.transferAmount(m_cardNumber, targetCard, amount);
     if (transferResult.success) {
-        // 记录交易
-        QString targetHolderName = getTargetCardHolderName(targetCard);
-        QString description = QString("转账 %1 元到 %2").arg(amount).arg(targetHolderName.isEmpty() ? targetCard : targetHolderName);
-        recordTransaction(TransactionType::Transfer, amount, 
-                         m_accountModel.getBalance(m_cardNumber), 
-                         description, targetCard);
+        // 不再需要在这里记录交易，因为 AccountService 已经记录了
+        // 移除以下代码块，避免重复记录:
+        // String targetHolderName = getTargetCardHolderName(targetCard);
+        // String description = QString("转账 %1 元到 %2").arg(amount).arg(targetHolderName.isEmpty() ? targetCard : targetHolderName);
+        // recordTransaction(TransactionType::Transfer, amount, 
+        //                  m_accountModel.getBalance(m_cardNumber), 
+        //                  description, targetCard);
         
         // 通知余额变化
         emit balanceChanged();
@@ -511,15 +538,6 @@ void AccountViewModel::setErrorMessage(const QString &message)
 }
 
 /**
- * @brief 获取预测余额属性
- * @return 预测余额
- */
-double AccountViewModel::predictedBalance() const
-{
-    return m_predictedBalance;
-}
-
-/**
  * @brief 计算预测余额
  * @param daysInFuture 预测未来天数 (默认为 7 天)
  */
@@ -555,6 +573,76 @@ void AccountViewModel::calculatePredictedBalance(int daysInFuture)
     }
 
     qDebug() << "预测余额计算成功, 结果:" << m_predictedBalance;
+}
+
+/**
+ * @brief 计算多日期预测余额
+ * 预测未来多个时间点的余额变化趋势
+ * @param days 预测天数列表，如 "7,14,30,90" 字符串形式
+ */
+void AccountViewModel::calculateMultiDayPredictions(const QString &days)
+{
+    // 添加详细日志
+    qDebug() << "开始计算多日期预测余额, 卡号:" << m_cardNumber
+             << "天数列表:" << days;
+
+    // 如果没有登录或者卡号为空，则返回
+    if (!m_isLoggedIn || m_cardNumber.isEmpty()) {
+        setErrorMessage("请先登录");
+        return;
+    }
+
+    // 将字符串转换为整数列表
+    QVector<int> daysList;
+    QStringList daysStrList = days.split(",", Qt::SkipEmptyParts);
+    for (const QString &dayStr : daysStrList) {
+        bool ok;
+        int day = dayStr.trimmed().toInt(&ok);
+        if (ok && day > 0) {
+            daysList.append(day);
+        }
+    }
+
+    // 如果没有有效的预测天数，则返回
+    if (daysList.isEmpty()) {
+        setErrorMessage("请提供有效的预测天数列表");
+        return;
+    }
+
+    // 存储各时间点的预测余额
+    QMap<int, double> predictions;
+    
+    // 调用 Model 层的多日期预测方法
+    OperationResult result = m_accountModel.predictBalanceMultiDays(
+        m_cardNumber, daysList, predictions);
+
+    // 如果计算失败，输出警告
+    if (!result.success) {
+        qWarning() << "多日期预测余额计算失败:" << result.errorMessage;
+        setErrorMessage(result.errorMessage);
+        return;
+    }
+
+    // 将结果转换为QVariantMap方便QML访问
+    QVariantMap predictionMap;
+    for (auto it = predictions.constBegin(); it != predictions.constEnd(); ++it) {
+        predictionMap[QString::number(it.key())] = it.value();
+    }
+
+    // 更新多日期预测结果并发送通知
+    m_multiDayPredictions = predictionMap;
+    emit multiDayPredictionsChanged();
+
+    // 同时更新单日期预测结果（默认使用7天）
+    if (daysList.contains(7)) {
+        double prediction7days = predictions.value(7, 0.0);
+        if (m_predictedBalance != prediction7days) {
+            m_predictedBalance = prediction7days;
+            emit predictedBalanceChanged();
+        }
+    }
+
+    qDebug() << "多日期预测余额计算成功, 结果:" << m_multiDayPredictions;
 }
 
 // --- 管理员方法实现 (可调用) ---

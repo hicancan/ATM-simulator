@@ -23,31 +23,30 @@ Page {
         onBackClicked: controller.switchToPage("BalancePage")
     }
     
-    // 添加一个可视化的刷新按钮
-    Button {
-        id: refreshButton
-        anchors.top: header.bottom
-        anchors.right: parent.right
-        anchors.margins: 10
-        text: "刷新"
-        highlighted: true
-        
-        onClicked: {
-            refreshTransactionHistory()
-        }
-    }
-    
-    // 用于显示调试消息
-    Label {
-        id: debugLabel
+    // 顶部控制区域
+    Rectangle {
+        id: controlArea
         anchors.top: header.bottom
         anchors.left: parent.left
-        anchors.right: refreshButton.left
-        anchors.margins: 10
-        font.pixelSize: 12
-        color: "white"
-        text: "调试: 准备加载交易记录..."
-        visible: true // 设为true以显示调试信息
+        anchors.right: parent.right
+        height: 50
+        color: "transparent"
+        
+        // 刷新按钮
+        Button {
+            id: refreshButton
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.rightMargin: 20
+            text: "刷新"
+            highlighted: true
+            
+            onClicked: {
+                refreshTransactionHistory()
+            }
+        }
+        
+        // 可以在此处添加其他控制元素，如筛选器等
     }
     
     // 初始化时刷新交易记录
@@ -59,12 +58,10 @@ Page {
     // 添加函数来刷新交易记录
     function refreshTransactionHistory() {
         console.log("正在刷新交易历史...")
-        debugLabel.text = "调试: 正在刷新交易记录..."
         
         // 确保设置了正确的卡号
         if (controller && controller.accountViewModel && controller.accountViewModel.isLoggedIn && controller.accountViewModel.cardNumber) {
             var cardNum = controller.accountViewModel.cardNumber
-            debugLabel.text = "调试: 正在获取卡号" + cardNum + "的交易记录..."
             
             // 使用新的updateCardNumber方法替代setCardNumber方法
             if (controller.transactionViewModel) {
@@ -75,18 +72,12 @@ Page {
                 // 强制刷新
                 controller.transactionViewModel.refreshTransactions()
                 
-                // 更新调试标签
-                var count = controller.transactionViewModel.rowCount()
-                debugLabel.text = "调试: 已加载 " + count + " 条交易记录"
-                
                 // 打印调试信息
-                console.log("刷新交易历史: 卡号=" + cardNum + ", 记录数=" + count)
+                console.log("刷新交易历史: 卡号=" + cardNum + ", 记录数=" + controller.transactionViewModel.rowCount())
             } else {
-                debugLabel.text = "调试: TransactionViewModel不可用"
                 console.log("TransactionViewModel不可用")
             }
         } else {
-            debugLabel.text = "调试: 未登录或卡号无效，无法刷新交易历史"
             console.log("未登录或卡号无效，无法刷新交易历史")
         }
     }
@@ -102,11 +93,11 @@ Page {
     // 使用ScrollView确保在小屏幕上可以滚动
     ScrollView {
         anchors {
-            top: debugLabel.bottom
+            top: controlArea.bottom
             bottom: parent.bottom
             left: parent.left
             right: parent.right
-            topMargin: 10
+            topMargin: 5
         }
         contentWidth: parent.width
         contentHeight: contentColumn.height
@@ -134,6 +125,7 @@ Page {
                     Label {
                         text: "持卡人: " + controller.accountViewModel.holderName
                         font.pixelSize: 16
+                        color: "white"
                     }
                     
                     Rectangle {
@@ -147,6 +139,7 @@ Page {
                         text: "当前余额: ￥" + controller.accountViewModel.balance.toFixed(2)
                         font.pixelSize: 16
                         font.bold: true
+                        color: "white"
                         Layout.alignment: Qt.AlignRight
                         Layout.fillWidth: true
                     }

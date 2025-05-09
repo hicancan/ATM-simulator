@@ -228,6 +228,17 @@ public:
                                             double &outBalance) const;
     
     /**
+     * @brief 多日期预测余额
+     * @param cardNumber 卡号
+     * @param days 预测天数数组，如[7, 14, 30, 90]
+     * @param outPredictions 输出参数，保存各天数的预测余额，key为天数
+     * @return 操作结果
+     */
+    OperationResult predictBalanceMultiDays(const QString &cardNumber,
+                                          const QVector<int> &days,
+                                          QMap<int, double> &outPredictions) const;
+    
+    /**
      * @brief 获取账户收支趋势
      * @param cardNumber 卡号
      * @param days 分析天数

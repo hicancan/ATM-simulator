@@ -47,25 +47,25 @@ Page {
                 height: 20
             }
             
-            // 余额预测面板
+            // 预测方法说明面板
             Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: Math.min(parent.width - 40, 500)
                 Layout.leftMargin: 20
                 Layout.rightMargin: 20
                 radius: 10
-                color: Material.color(Material.Teal, Material.Shade800)
-                implicitHeight: predictionColumn.implicitHeight + 40
+                color: Material.color(Material.BlueGrey, Material.Shade800)
+                implicitHeight: methodInfoColumn.implicitHeight + 40
 
                 ColumnLayout {
-                    id: predictionColumn
+                    id: methodInfoColumn
                     anchors.fill: parent
                     anchors.margins: 20
-                    spacing: 15
+                    spacing: 10
 
                     Label {
-                        text: "余额预测 (未来7天)"
-                        font.pixelSize: 20
+                        text: "预测方法说明"
+                        font.pixelSize: 16
                         font.bold: true
                         Layout.alignment: Qt.AlignHCenter
                         color: "white"
@@ -77,48 +77,163 @@ Page {
                         color: Material.color(Material.Grey, Material.Shade400)
                     }
 
-                    GridLayout {
+                    Label {
+                        text: "当前使用加权平均法和线性回归相结合的方式预测余额。近期交易会获得更高权重，提高预测准确度。"
+                        font.pixelSize: 14
+                        wrapMode: Text.WordWrap
                         Layout.fillWidth: true
-                        columns: 2
-                        columnSpacing: 10
+                        color: "white"
+                    }
+                }
+            }
+            
+            // 多日期余额预测面板
+            Rectangle {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: Math.min(parent.width - 40, 500)
+                Layout.leftMargin: 20
+                Layout.rightMargin: 20
+                radius: 10
+                color: Material.color(Material.Teal, Material.Shade800)
+                implicitHeight: multiPredictionColumn.implicitHeight + 40
+
+                ColumnLayout {
+                    id: multiPredictionColumn
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 15
+
+                    Label {
+                        text: "多日期余额预测"
+                        font.pixelSize: 20
+                        font.bold: true
+                        Layout.alignment: Qt.AlignHCenter
+                        color: "white"
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Material.color(Material.Grey, Material.Shade400)
+                    }
+                    
+                    // 多日期预测选择
+                    ComboBox {
+                        id: predictionDaysCombo
+                        Layout.fillWidth: true
+                        model: ["7,14,30,90", "1,3,7,14", "30,60,90,180", "7,30,90,365"]
+                        currentIndex: 0
                         
-                        Label { 
-                            text: "预测余额:"
-                            font.pixelSize: 16
-                            color: "white"
-                            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                        delegate: ItemDelegate {
+                            width: predictionDaysCombo.width
+                            contentItem: Text {
+                                text: modelData
+                                color: "black"
+                                font.pixelSize: 14
+                                elide: Text.ElideRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            highlighted: predictionDaysCombo.highlightedIndex === index
                         }
                         
-                        Label {
-                            id: predictedBalanceLabel
-                            text: controller.accountViewModel.predictedBalance > 0 || controller.accountViewModel.predictedBalance < 0 ?
-                                  "￥" + controller.accountViewModel.predictedBalance.toFixed(2) :
-                                  (controller.accountViewModel.isLoggedIn ? "点击下方按钮计算" : "N/A")
-                            font.pixelSize: 18
-                            font.bold: true
-                            color: controller.accountViewModel.predictedBalance > controller.accountViewModel.balance ? 
-                                   "#4caf50" : (controller.accountViewModel.predictedBalance < controller.accountViewModel.balance ? 
-                                   "#f44336" : "white")
-                            Layout.fillWidth: true
-                            horizontalAlignment: Text.AlignRight
+                        contentItem: Text {
+                            leftPadding: 10
+                            rightPadding: predictionDaysCombo.indicator.width + predictionDaysCombo.spacing
+                            text: predictionDaysCombo.displayText
+                            font.pixelSize: 14
+                            color: "black"
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
                         }
                     }
                     
-                    Item {
+                    // 自定义日期输入字段
+                    TextField {
+                        id: customDaysField
                         Layout.fillWidth: true
-                        height: 10
+                        placeholderText: "自定义预测天数 (例如: 7,14,30,90)"
+                        font.pixelSize: 14
+                        color: "black"
+                        Material.accent: Material.Teal
                     }
                     
+                    // 计算按钮
                     Button {
-                        text: "计算预测余额"
+                        text: "计算预测"
                         Layout.alignment: Qt.AlignHCenter
                         Layout.preferredWidth: 180
                         Layout.preferredHeight: 40
                         font.pixelSize: 14
                         Material.background: Material.Orange
                         enabled: controller.accountViewModel.isLoggedIn
+                        
                         onClicked: {
-                            controller.accountViewModel.calculatePredictedBalance(7) 
+                            // 使用自定义输入或下拉框选择的值
+                            let daysToPredict = customDaysField.text.trim() !== "" ? 
+                                customDaysField.text : predictionDaysCombo.currentText;
+                            controller.accountViewModel.calculateMultiDayPredictions(daysToPredict); 
+                        }
+                    }
+                    
+                    // 日期预测结果网格
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 2
+                        columnSpacing: 10
+                        rowSpacing: 10
+                        visible: Object.keys(controller.accountViewModel.multiDayPredictions).length > 0
+                        
+                        // 动态创建预测结果项
+                        Repeater {
+                            model: {
+                                // 从multiDayPredictions中提取键值对并按天数排序
+                                let predictions = controller.accountViewModel.multiDayPredictions;
+                                let sortedKeys = Object.keys(predictions).sort((a, b) => parseInt(a) - parseInt(b));
+                                let result = [];
+                                
+                                for (let i = 0; i < sortedKeys.length; i++) {
+                                    let day = sortedKeys[i];
+                                    result.push({
+                                        day: day,
+                                        amount: predictions[day]
+                                    });
+                                }
+                                
+                                return result;
+                            }
+                            
+                            delegate: RowLayout {
+                                Layout.fillWidth: true
+                                Layout.columnSpan: 2
+                                
+                                Label {
+                                    text: modelData.day + " 天后:"
+                                    font.pixelSize: 14
+                                    color: "white"
+                                    Layout.preferredWidth: 80
+                                }
+                                
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 30
+                                    color: Material.color(Material.Teal, Material.Shade700)
+                                    radius: 4
+                                    
+                                    Label {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 10
+                                        anchors.rightMargin: 10
+                                        text: "￥" + modelData.amount.toFixed(2)
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                        color: modelData.amount > controller.accountViewModel.balance ? 
+                                               "#4caf50" : (modelData.amount < controller.accountViewModel.balance ? 
+                                               "#f44336" : "white")
+                                        horizontalAlignment: Text.AlignRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+                            }
                         }
                     }
                 }
