@@ -109,7 +109,7 @@ ApplicationWindow {
         y: (parent.height - height) / 2
         
         Label {
-            text: "是否确认退出系统？"
+            text: "是否确认退出系统？请保存好您的银行卡！"
         }
         
         onAccepted: controller.logout()

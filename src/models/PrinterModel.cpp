@@ -96,48 +96,65 @@ bool PrinterModel::printReceipt(const QString &htmlContent, bool showPrintDialog
         // 创建带有时间戳的唯一文件名
         QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss");
         QString pdfPath = documentsPath + "/ATM_Receipt_" + timestamp + ".pdf";
-        // 不再需要单独保存 HTML 文件，直接用于生成 PDF
-
+        
         // 使用 QPdfWriter 直接创建 PDF 文件
         QPdfWriter pdfWriter(pdfPath);
 
         // 设置 PDF writer 的页面属性
         pdfWriter.setPageSize(QPageSize(QPageSize::A4));
         pdfWriter.setPageOrientation(QPageLayout::Portrait);
-        // 关键修复: 设置更小的页面边距，充分利用整个页面
-        pdfWriter.setPageMargins(QMarginsF(10, 10, 10, 10), QPageLayout::Millimeter);
-        // 使用 QPdfWriter 时的分辨率通常由 writer 本身控制，这里设置 dpi
-        pdfWriter.setResolution(m_printer->resolution()); // 使用打印机分辨率
+        // 将边距设置为最小值，最大化内容区域
+        pdfWriter.setPageMargins(QMarginsF(5, 5, 5, 5), QPageLayout::Millimeter);
+        // 设置更高分辨率
+        pdfWriter.setResolution(600);
 
-        // 创建文档并设置合适的样式和内容
+        // 创建文档
         QTextDocument doc;
-        doc.setDocumentMargin(0); // 减少文档内边距
-
-        // 设置文档尺寸与 PDF Writer 的页面完全匹配
-        // 注意：QPdfWriter 的 pageRect() 返回的是像素单位
-        // QPageLayout 的 fullRect 返回的是 point 单位
-        // 为了文档内容正确缩放，最好设置 doc 的 pageSize 与 writer 的 pageSize 匹配，
-        // 或者让 doc 自己去适应 layout
-        QPageLayout layout = pdfWriter.pageLayout();
-        QRectF pageRectPoints = layout.fullRect(QPageLayout::Point);
-        doc.setPageSize(pageRectPoints.size());
-
-
-        // 设置放大样式 (针对 PDF 输出可能需要调整字体大小以适应 A4)
-        doc.setDefaultStyleSheet(
-            "body { font-family: 'Microsoft YaHei', Arial, sans-serif; font-size: 12pt; }" // 调整基础字体大小
-            "h1 { font-size: 20pt; }" // 调整标题大小
-            "th { font-size: 14pt; }" // 调整表头字体大小
-            "td { font-size: 14pt; }" // 调整表格数据字体大小
-            "p { font-size: 12pt; }" // 调整段落字体大小
-            ".receipt-title { font-size: 16pt; }" // 调整回单标题大小
+        
+        // 创建更全面的HTML文档结构，修改样式以填充更多空间
+        QString enhancedHtml = QString(
+            "<html>"
+            "<head>"
+            "<style type='text/css'>"
+            "body { font-family: 'Microsoft YaHei', Arial, sans-serif; text-align: center; margin: 0; padding: 0; color: #000000; width: 100%; }"
+            "table { width: 100%; margin: 10px auto; border-collapse: collapse; }"
+            "th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 14pt; color: #000000; }"
+            "th { font-weight: bold; width: 40%; color: #000000; }"
+            ".amount { font-weight: bold; color: #c00000; }"
+            ".header { margin-bottom: 10px; width: 100%; color: #000000; }"
+            ".footer { margin-top: 10px; width: 100%; color: #000000; }"
+            ".divider { border-top: 2px solid black; margin: 10px auto; width: 100%; }"
+            "h2, h3 { margin: 5px 0; color: #000000; }"
+            "p { color: #000000; font-size: 12pt; }"
+            "div { color: #000000; }"
+            "#main-container { width: 100%; margin: 0 auto; padding: 0; }"
+            "</style>"
+            "</head>"
+            "<body><div id='main-container'>" + htmlContent + "</div></body>"
+            "</html>"
         );
-
-        doc.setHtml(htmlContent);
-
-        // 使用 QPainter 绘制文档到 PDF Writer
+        
+        // 设置文档内容
+        doc.setHtml(enhancedHtml);
+        
+        // 设置文档默认样式表，确保所有文本为黑色
+        doc.setDefaultStyleSheet("* { color: #000000; }");
+        
+        // 设置文档尺寸为A4大小（以点为单位，1点 = 1/72英寸）
+        // A4大小约为595×842点
+        doc.setPageSize(QSizeF(595, 842));
+        
+        // 确保文档宽度与PDF页面宽度匹配
+        doc.setTextWidth(pdfWriter.width());
+        
+        // 使用QPainter绘制文档到PDF
         QPainter painter(&pdfWriter);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setRenderHint(QPainter::TextAntialiasing);
+        
+        // 绘制文档内容，确保填充整个页面
         doc.drawContents(&painter);
+        painter.end();
 
         qDebug() << "PDF 已创建:" << pdfPath;
 
@@ -185,61 +202,46 @@ QString PrinterModel::generateReceiptHtml(
 {
     // 生成唯一交易 ID，如果未提供则生成新的 UUID
     QString uuid = transactionId.isEmpty() ?
-                  QUuid::createUuid().toString(QUuid::WithoutBraces).mid(0, 10).toUpper() : // 生成简短的 UUID，转换为大写
+                  QUuid::createUuid().toString(QUuid::WithoutBraces).mid(0, 10).toUpper() :
                   transactionId;
 
-    // 构建完整的 HTML 文档
-    QString html =
-        "<!DOCTYPE html>\n"
-        "<html>\n"
-        "<head>\n"
-        "<meta charset=\"UTF-8\">\n"
-        "<title>ATM 回单</title>\n" // 调整标题
-        "<style>\n"
-        "body { font-family: 'Microsoft YaHei', Arial, sans-serif; font-size: 10pt; margin: 15px; padding: 8px; }\n" // 调整基础样式
-        "h1 { font-size: 20pt; text-align: center; margin-bottom: 15px; font-weight: bold; }\n" // 调整标题样式
-        "table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n" // 调整表格样式
-        "th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }\n" // 调整表格单元格样式
-        "th { font-weight: bold; width: 40%; font-size: 12pt; }\n" // 调整表头样式
-        "td { font-size: 12pt; }\n" // 调整表格数据样式
-        ".header, .footer { text-align: center; margin: 20px 0; }\n" // 调整头部和尾部样式
-        ".divider { border-top: 2px dashed black; margin: 15px 0; }\n" // 调整分割线样式
-        ".footer p { font-size: 10pt; margin-top: 15px; line-height: 1.4; }\n" // 调整尾部段落样式
-        ".amount { font-weight: bold; color: #c00000; }\n" // 调整金额样式
-        ".receipt-title { font-size: 14pt; text-align: center; margin: 8px 0 15px 0; font-weight: bold; }\n" // 调整回单标题样式
-        "</style>\n"
-        "</head>\n"
-        "<body>\n"
-        "<div class='header'>\n"
-        "<h1>" + bankName + "</h1>\n"
-        "<div class='receipt-title'>交易回单</div>\n"
-        "</div>\n"
-        "<div class='divider'></div>\n"
-        "<table>\n"
-        "<tr><th>交易类型:</th><td>" + transactionType + "</td></tr>\n"
-        "<tr><th>交易时间:</th><td>" + transactionDate.toString("yyyy-MM-dd hh:mm:ss") + "</td></tr>\n"
-        "<tr><th>交易卡号:</th><td>尾号" + cardNumber.right(4) + "</td></tr>\n" // 只显示卡号后四位
-        "<tr><th>持卡人:</th><td>" + holderName + "</td></tr>\n"
-        "<tr><th>交易金额:</th><td class='amount'>￥" + QString::number(amount, 'f', 2) + "</td></tr>\n" // 格式化金额
-        "<tr><th>交易后余额:</th><td>￥" + QString::number(balanceAfter, 'f', 2) + "</td></tr>\n"; // 格式化余额
+    // 构建改进的HTML结构，确保所有信息清晰可见并设置明确的黑色文本颜色
+    QString html = 
+        // 头部 - 减小高度，保持样式
+        "<div style='text-align: center; width: 100%; padding: 10px 0; border-bottom: 2px solid #000; color: #000000; background-color: #f8f8f8;'>"
+        "<h2 style='font-size: 22pt; margin: 2px 0; color: #000000;'>" + bankName + "</h2>"
+        "<h3 style='font-size: 16pt; margin: 2px 0; color: #000000;'>交易回单</h3>"
+        "</div>"
+        
+        // 交易信息表格 - 扩大表格区域，增加内容比例
+        "<table style='width: 100%; margin: 40px auto; font-size: 16pt; color: #000000; border: 1px solid #ddd;'>"
+        "<tr><th style='width: 35%; text-align: left; padding: 12px; color: #000000; background-color: #f0f0f0;'>交易类型:</th><td style='padding: 12px; color: #000000;'><strong>" + transactionType + "</strong></td></tr>"
+        "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>交易时间:</th><td style='padding: 12px; color: #000000;'>" + transactionDate.toString("yyyy-MM-dd hh:mm:ss") + "</td></tr>"
+        "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>交易卡号:</th><td style='padding: 12px; color: #000000;'>尾号" + cardNumber.right(4) + "</td></tr>"
+        "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>持卡人:</th><td style='padding: 12px; color: #000000;'>" + holderName + "</td></tr>"
+        "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>交易金额:</th><td style='padding: 12px; font-weight: bold; color: #c00000; font-size: 18pt;'>￥" + QString::number(amount, 'f', 2) + "</td></tr>"
+        "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>交易后余额:</th><td style='padding: 12px; color: #000000;'>￥" + QString::number(balanceAfter, 'f', 2) + "</td></tr>";
 
     // 如果是转账，添加目标账户信息
     if (transactionType == "转账" && !targetCardNumber.isEmpty()) {
-        html += "<tr><th>收款卡号:</th><td>尾号" + targetCardNumber.right(4) + "</td></tr>\n"; // 只显示目标卡号后四位
+        html += "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>收款卡号:</th><td style='padding: 12px; color: #000000;'>尾号" + targetCardNumber.right(4) + "</td></tr>";
         if (!targetCardHolder.isEmpty()) {
-            html += "<tr><th>收款人:</th><td>" + targetCardHolder + "</td></tr>\n";
+            html += "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>收款人:</th><td style='padding: 12px; color: #000000;'>" + targetCardHolder + "</td></tr>";
         }
     }
 
-    html += "<tr><th>交易编号:</th><td>" + uuid + "</td></tr>\n" // 添加交易编号
-            "</table>\n"
-            "<div class='divider'></div>\n"
-            "<div class='footer'>\n"
-            "<p>此回单作为交易凭证，请妥善保管。<br>\n" // 添加底部提示信息
-            "感谢您使用 " + bankName + " ATM 模拟器银行服务！</p>\n" // 个性化感谢信息
-            "</div>\n"
-            "</body>\n"
-            "</html>";
+    html += "<tr><th style='padding: 12px; color: #000000; background-color: #f0f0f0;'>交易编号:</th><td style='padding: 12px; color: #000000;'>" + uuid + "</td></tr>"
+            "</table>"
+            
+            // 分隔线
+            "<div style='border-top: 2px solid #000; width: 100%; margin: 40px 0;'></div>"
+            
+            // 底部信息 - 减小高度
+            "<div style='text-align: center; margin-top: 0; width: 100%; font-size: 12pt; color: #000000; background-color: #f8f8f8; padding: 10px 0;'>"
+            "<p style='margin: 2px 0; color: #000000;'>此回单作为交易凭证，请妥善保管。</p>"
+            "<p style='margin: 2px 0; color: #000000;'>感谢您使用 " + bankName + " ATM 模拟器银行服务！</p>"
+            "<p style='margin: 2px 0; color: #000000;'>" + QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss") + " 打印</p>"
+            "</div>";
 
-    return html; // 返回生成的 HTML 字符串
+    return html;
 }
