@@ -3,7 +3,7 @@
  * @file AccountService.cpp
  * @brief 账户服务类实现
  *
- * 实现了AccountService类中定义的账户操作方法。
+ * 实现用户账户相关的核心业务逻辑。
  */
 #include "AccountService.h"
 #include <QDebug>
@@ -12,7 +12,7 @@
  * @brief 构造函数
  * @param repository 账户存储库
  * @param validator 账户验证器
- * @param transactionModel 交易记录模型
+ * @param transactionModel 交易记录模型（可选）
  */
 AccountService::AccountService(IAccountRepository* repository, 
                              AccountValidator* validator,
@@ -21,6 +21,11 @@ AccountService::AccountService(IAccountRepository* repository,
     , m_validator(validator)
     , m_transactionModel(transactionModel)
 {
+    // 验证参数
+    Q_ASSERT(repository != nullptr);
+    Q_ASSERT(validator != nullptr);
+    
+    qDebug() << "账户服务初始化完成";
 }
 
 /**
@@ -40,7 +45,7 @@ void AccountService::setTransactionModel(TransactionModel* transactionModel)
  */
 LoginResult AccountService::performLogin(const QString& cardNumber, const QString& pin)
 {
-    // 验证账户凭据
+    // 验证凭据
     OperationResult validationResult = m_validator->validateCredentials(cardNumber, pin);
     if (!validationResult.success) {
         return LoginResult::Failure(validationResult.errorMessage);
@@ -50,25 +55,25 @@ LoginResult AccountService::performLogin(const QString& cardNumber, const QStrin
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     const Account& account = accountOpt.value(); // 验证通过后一定存在
     
+    // 检查账户是否为管理员账户
+    if (account.isAdmin) {
+        return LoginResult::Failure("请使用管理员登录功能");
+    }
+    
     // 记录登录交易
     if (m_transactionModel) {
-        recordTransaction(
+        m_transactionModel->recordTransaction(
             cardNumber,
             TransactionType::Other,
             0.0,
             account.balance,
-            "用户登录",
+            "登录系统",
             QString()
         );
     }
     
-    // 返回成功的登录结果，包含账户信息
-    return LoginResult::Success(
-        account.isAdmin,
-        account.holderName,
-        account.balance,
-        account.withdrawLimit
-    );
+    // 登录成功
+    return LoginResult::Success(account.isAdmin, account.holderName, account.balance, account.withdrawLimit);
 }
 
 /**
@@ -85,7 +90,7 @@ OperationResult AccountService::withdrawAmount(const QString& cardNumber, double
         return validationResult;
     }
     
-    // 获取账户并执行取款
+    // 获取账户信息
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     Account account = accountOpt.value(); // 验证通过后一定存在
     
@@ -100,7 +105,7 @@ OperationResult AccountService::withdrawAmount(const QString& cardNumber, double
     
     // 记录取款交易
     if (m_transactionModel) {
-        recordTransaction(
+        m_transactionModel->recordTransaction(
             cardNumber,
             TransactionType::Withdrawal,
             amount,
@@ -127,7 +132,7 @@ OperationResult AccountService::depositAmount(const QString& cardNumber, double 
         return validationResult;
     }
     
-    // 获取账户并执行存款
+    // 获取账户信息
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     Account account = accountOpt.value(); // 验证通过后一定存在
     
@@ -142,7 +147,7 @@ OperationResult AccountService::depositAmount(const QString& cardNumber, double 
     
     // 记录存款交易
     if (m_transactionModel) {
-        recordTransaction(
+        m_transactionModel->recordTransaction(
             cardNumber,
             TransactionType::Deposit,
             amount,
@@ -200,7 +205,7 @@ OperationResult AccountService::transferAmount(const QString& fromCardNumber,
     // 记录转账交易
     if (m_transactionModel) {
         // 记录源账户的转出交易
-        recordTransaction(
+        m_transactionModel->recordTransaction(
             fromCardNumber,
             TransactionType::Transfer,
             amount,
@@ -210,7 +215,7 @@ OperationResult AccountService::transferAmount(const QString& fromCardNumber,
         );
         
         // 记录目标账户的转入交易
-        recordTransaction(
+        m_transactionModel->recordTransaction(
             toCardNumber,
             TransactionType::Deposit,
             amount,
@@ -246,8 +251,8 @@ OperationResult AccountService::changePin(const QString& cardNumber,
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     Account account = accountOpt.value(); // 验证通过后一定存在
     
-    // 更新PIN码
-    account.pin = newPin;
+    // 更新PIN码（使用安全的哈希存储）
+    account.setPin(newPin);
     
     // 保存更新后的账户
     OperationResult saveResult = m_repository->saveAccount(account);
@@ -257,7 +262,7 @@ OperationResult AccountService::changePin(const QString& cardNumber,
     
     // 记录PIN码修改交易
     if (m_transactionModel) {
-        recordTransaction(
+        m_transactionModel->recordTransaction(
             cardNumber,
             TransactionType::Other,
             0.0,
@@ -311,33 +316,12 @@ double AccountService::getWithdrawLimit(const QString& cardNumber) const
 bool AccountService::isAccountLocked(const QString& cardNumber) const
 {
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    return accountOpt ? accountOpt.value().isLocked : false;
-}
-
-/**
- * @brief 记录交易
- * @param cardNumber 交易涉及的卡号
- * @param type 交易类型
- * @param amount 交易金额
- * @param balanceAfter 交易后余额
- * @param description 交易描述
- * @param targetCard 目标卡号 (转账时使用)
- */
-void AccountService::recordTransaction(const QString& cardNumber, 
-                                      TransactionType type,
-                                      double amount, 
-                                      double balanceAfter,
-                                      const QString& description, 
-                                      const QString& targetCard)
-{
-    if (m_transactionModel) {
-        m_transactionModel->recordTransaction(
-            cardNumber,
-            type,
-            amount,
-            balanceAfter,
-            description,
-            targetCard
-        );
+    if (!accountOpt) {
+        return false;
     }
+    
+    const Account& account = accountOpt.value();
+    
+    // 检查永久锁定和临时锁定
+    return account.isLocked || account.isTemporarilyLocked();
 }

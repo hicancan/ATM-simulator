@@ -12,6 +12,7 @@
 #include <QString>
 #include "../models/AccountModel.h"
 #include "../models/TransactionModel.h" // 包含 TransactionModel 头文件
+#include "../models/AccountValidator.h" // 添加 AccountValidator 头文件
 
 /**
  * @brief 账户视图模型类
@@ -79,6 +80,13 @@ public:
      * @return 如果登录成功返回 true，否则返回 false
      */
     Q_INVOKABLE bool loginWithCard(const QString &cardNumber, const QString &pin);
+    /**
+     * @brief 处理管理员登录
+     * @param cardNumber 卡号
+     * @param pin PIN 码
+     * @return 如果登录成功返回 true，否则返回 false
+     */
+    Q_INVOKABLE bool adminLogin(const QString &cardNumber, const QString &pin);
     /**
      * @brief 处理取款操作
      * @param amount 取款金额
@@ -234,6 +242,8 @@ private:
     AccountModel m_accountModel;
     //!< TransactionModel 指针，用于记录交易和预测余额
     TransactionModel *m_transactionModel;
+    //!< AccountValidator 实例，直接处理验证逻辑
+    AccountValidator m_validator;
 
     // --- 私有成员变量 (支持 Q_PROPERTY) ---
     QString m_cardNumber;       //!< 当前登录的账户卡号
@@ -243,7 +253,7 @@ private:
     bool m_isAdmin;             //!< 当前登录用户是否为管理员
 
     /**
-     * @brief 辅助方法：使用 AccountModel 记录交易
+     * @brief 辅助方法：记录交易
      * @param type 交易类型
      * @param amount 交易金额
      * @param balanceAfter 交易后余额

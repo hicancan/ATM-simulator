@@ -114,22 +114,6 @@ public:
     bool isAccountLocked(const QString& cardNumber) const;
 
 private:
-    /**
-     * @brief 记录交易
-     * @param cardNumber 交易涉及的卡号
-     * @param type 交易类型
-     * @param amount 交易金额
-     * @param balanceAfter 交易后余额
-     * @param description 交易描述
-     * @param targetCard 目标卡号 (转账时使用)
-     */
-    void recordTransaction(const QString& cardNumber, 
-                          TransactionType type,
-                          double amount, 
-                          double balanceAfter,
-                          const QString& description, 
-                          const QString& targetCard = QString());
-    
     //!< 账户存储库
     IAccountRepository* m_repository;
     

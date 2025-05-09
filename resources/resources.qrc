@@ -11,6 +11,7 @@
         <file>../qml/TransactionHistoryPage.qml</file>
         <file>../qml/ChangePasswordPage.qml</file>
         <file>../qml/AdminPage.qml</file>
+        <file>../qml/BalancePredictionPage.qml</file>
         <file>../qml/components/NumericKeypad.qml</file>
         <file>../qml/components/TransactionButton.qml</file>
         <file>../qml/components/HeaderBar.qml</file>

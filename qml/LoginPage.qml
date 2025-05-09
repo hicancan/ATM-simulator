@@ -136,14 +136,23 @@ Page {
                         return
                     }
                     
-                    // 直接使用loginWithCard方法，避免数据同步问题
-                    if (controller.accountViewModel.loginWithCard(cardNumberField.text, pinField.text)) {
-                        pinField.text = ""
-                        // 检查是否是管理员，如果是则直接跳转到AdminPage
-                        if (controller.accountViewModel.isAdmin) {
+                    // 检查是否为管理员卡号
+                    if (cardNumberField.text === "9999888877776666") {
+                        // 使用管理员登录方法
+                        if (controller.accountViewModel.adminLogin(cardNumberField.text, pinField.text)) {
+                            pinField.text = ""
                             controller.switchToPage("AdminPage")
-                        } else {
-                            controller.switchToPage("MainMenu")
+                        }
+                    } else {
+                        // 普通账户登录
+                        if (controller.accountViewModel.loginWithCard(cardNumberField.text, pinField.text)) {
+                            pinField.text = ""
+                            // 检查是否是管理员，如果是则直接跳转到AdminPage
+                            if (controller.accountViewModel.isAdmin) {
+                                controller.switchToPage("AdminPage")
+                            } else {
+                                controller.switchToPage("MainMenu")
+                            }
                         }
                     }
                 }

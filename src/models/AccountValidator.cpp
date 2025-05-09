@@ -47,19 +47,51 @@ OperationResult AccountValidator::validateCredentials(const QString& cardNumber,
         return OperationResult::Failure("卡号或PIN码错误");
     }
 
-    // 验证账户状态
-    const Account& account = accountOpt.value();
+    // 获取可修改的账户副本
+    Account account = accountOpt.value();
+    
+    // 检查账户是否被永久锁定
     if (account.isLocked) {
-        qDebug() << "验证失败: 账户已锁定:" << cardNumber;
+        qDebug() << "验证失败: 账户已永久锁定:" << cardNumber;
         return OperationResult::Failure("该账户已被锁定，请联系管理员");
     }
+    
+    // 检查账户是否被临时锁定
+    if (account.isTemporarilyLocked()) {
+        qDebug() << "验证失败: 账户已临时锁定:" << cardNumber 
+                 << "锁定至:" << account.temporaryLockTime.toString();
+        
+        return OperationResult::Failure(
+            QString("由于多次登录失败，账户已临时锁定，请%1分钟后再试")
+                .arg(Account::TEMP_LOCK_DURATION));
+    }
 
-    // 验证PIN码
-    bool pinMatches = (account.pin == pin);
-    qDebug() << "PIN验证结果:" << pinMatches << "输入PIN:" << pin << "存储PIN:" << account.pin;
+    // 验证PIN码（使用哈希比较）
+    bool pinMatches = account.verifyPin(pin);
+    qDebug() << "PIN验证结果:" << pinMatches << "卡号:" << cardNumber;
     
     if (!pinMatches) {
-        return OperationResult::Failure("卡号或PIN码错误");
+        // 记录登录失败
+        bool lockedNow = account.recordFailedLogin();
+        
+        // 保存更新后的账户状态
+        m_repository->saveAccount(account);
+        
+        if (lockedNow) {
+            return OperationResult::Failure(
+                QString("PIN码错误，由于多次登录失败，账户已临时锁定，请%1分钟后再试")
+                    .arg(Account::TEMP_LOCK_DURATION));
+        }
+        
+        return OperationResult::Failure(
+            QString("卡号或PIN码错误，剩余尝试次数: %1")
+                .arg(Account::MAX_FAILED_ATTEMPTS - account.failedLoginAttempts));
+    }
+    
+    // 登录成功，重置失败计数
+    if (account.failedLoginAttempts > 0) {
+        account.resetFailedLoginAttempts();
+        m_repository->saveAccount(account);
     }
     
     return OperationResult::Success();
@@ -262,35 +294,36 @@ OperationResult AccountValidator::validateTransfer(const QString& fromCardNumber
  * @return 操作结果
  */
 OperationResult AccountValidator::validatePinChange(const QString& cardNumber, 
-                                                   const QString& currentPin,
-                                                   const QString& newPin, 
-                                                   const QString& confirmPin) const
+                                      const QString& currentPin,
+                                      const QString& newPin, 
+                                      const QString& confirmPin) const
 {
-    // 如果提供了confirmPin，验证新PIN和确认PIN是否匹配
-    if (!confirmPin.isEmpty() && newPin != confirmPin) {
-        return OperationResult::Failure("新PIN码与确认PIN码不匹配");
+    // 验证卡号和当前PIN
+    OperationResult credResult = validateCredentials(cardNumber, currentPin);
+    if (!credResult.success) {
+        return credResult;
     }
     
-    // 验证账户是否存在
+    // 获取账户信息
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    if (!accountOpt) {
-        return OperationResult::Failure("账户不存在");
-    }
-    
     const Account& account = accountOpt.value();
     
-    // 检查账户是否被锁定
-    if (account.isLocked) {
-        return OperationResult::Failure("账户已锁定");
-    }
-    
-    // 验证当前PIN是否正确
-    if (account.pin != currentPin) {
-        return OperationResult::Failure("当前PIN码不正确");
-    }
-    
     // 验证新PIN格式
-    return validatePinFormat(newPin);
+    if (!account.isValidPin(newPin)) {
+        return OperationResult::Failure("新PIN码格式无效，必须为4-6位数字");
+    }
+    
+    // 如果提供了确认PIN，则验证是否匹配
+    if (!confirmPin.isEmpty() && newPin != confirmPin) {
+        return OperationResult::Failure("两次输入的新PIN码不匹配");
+    }
+    
+    // 验证新旧PIN是否相同
+    if (account.verifyPin(newPin)) {
+        return OperationResult::Failure("新PIN码不能与当前PIN码相同");
+    }
+    
+    return OperationResult::Success();
 }
 
 /**
@@ -424,22 +457,10 @@ OperationResult AccountValidator::validateUpdateAccount(const QString& cardNumbe
  */
 OperationResult AccountValidator::validatePinFormat(const QString& pin) const
 {
-    // 验证PIN格式：长度4-6位
-    if (pin.length() < 4 || pin.length() > 6) {
-        return OperationResult::Failure("PIN码长度必须在4-6位之间");
-    }
-    
-    // 检查PIN是否为纯数字
-    bool isNumeric = true;
-    for (QChar c : pin) {
-        if (!c.isDigit()) {
-            isNumeric = false;
-            break;
-        }
-    }
-    
-    if (!isNumeric) {
-        return OperationResult::Failure("PIN码只能包含数字");
+    // 创建临时账户对象来验证PIN格式
+    Account tempAccount;
+    if (!tempAccount.isValidPin(pin)) {
+        return OperationResult::Failure("PIN码格式无效，必须为4-6位数字");
     }
     
     return OperationResult::Success();

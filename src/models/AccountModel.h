@@ -47,6 +47,12 @@ public:
      */
     void setTransactionModel(TransactionModel* transactionModel);
 
+    /**
+     * @brief 获取账户存储库指针
+     * @return 账户存储库接口指针
+     */
+    IAccountRepository* getRepository() const { return m_repository.get(); }
+
     // ================================
     // === AccountService 对应的方法 ===
     // ================================
@@ -243,115 +249,10 @@ public:
     double getTransactionFrequency(const QString &cardNumber, int days = 30) const;
 
     /**
-     * @brief 验证账户凭据
-     * @param cardNumber 卡号
-     * @param pin PIN码
-     * @return 操作结果
-     */
-    OperationResult validateCredentials(const QString &cardNumber, const QString &pin) const;
-
-    /**
-     * @brief 验证取款操作
-     * @param cardNumber 卡号
-     * @param amount 取款金额
-     * @return 操作结果
-     */
-    OperationResult validateWithdrawal(const QString &cardNumber, double amount) const;
-
-    /**
-     * @brief 验证存款操作
-     * @param cardNumber 卡号
-     * @param amount 存款金额
-     * @return 操作结果
-     */
-    OperationResult validateDeposit(const QString &cardNumber, double amount) const;
-
-    /**
-     * @brief 验证转账操作
-     * @param fromCardNumber 源卡号
-     * @param toCardNumber 目标卡号
-     * @param amount 转账金额
-     * @return 操作结果
-     */
-    OperationResult validateTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount) const;
-
-    /**
-     * @brief 记录交易
-     * @param cardNumber 交易涉及的卡号
-     * @param type 交易类型
-     * @param amount 交易金额
-     * @param balanceAfter 交易后余额
-     * @param description 交易描述
-     * @param targetCard 目标卡号 (转账时使用)
-     */
-    void recordTransaction(const QString &cardNumber, 
-                          TransactionType type,
-                          double amount, 
-                          double balanceAfter,
-                          const QString &description, 
-                          const QString &targetCard = QString());
-
-    /**
-     * @brief 验证目标账户
-     * @param targetCardNumber 目标卡号
-     * @return 操作结果
-     */
-    OperationResult validateTargetAccount(const QString &targetCardNumber) const;
-
-    /**
-     * @brief 获取目标账户信息
-     * @param targetCardNumber 目标卡号
-     * @param outHolderName 输出参数，目标持卡人姓名
-     * @param outIsLocked 输出参数，目标账户是否锁定
-     * @return 如果成功获取返回true，否则返回false
-     */
-    bool getTargetAccountInfo(const QString &targetCardNumber, 
-                             QString &outHolderName, 
-                             bool &outIsLocked) const;
-
-    /**
-     * @brief 将所有账户转换为变体列表（用于UI显示）
-     * @return 包含账户数据的QVariantList
+     * @brief 获取所有账户列表的变体形式
+     * @return 所有账户的变体列表
      */
     QVariantList getAllAccountsAsVariantList() const;
-
-    /**
-     * @brief 验证创建账户参数
-     * @param cardNumber 卡号
-     * @param pin PIN码
-     * @param holderName 持卡人姓名
-     * @param balance 初始余额
-     * @param withdrawLimit 取款限额
-     * @param isAdmin 是否为管理员账户
-     * @return 操作结果
-     */
-    OperationResult validateCreateAccount(const QString &cardNumber, 
-                                        const QString &pin, 
-                                        const QString &holderName,
-                                        double balance, 
-                                        double withdrawLimit, 
-                                        bool isAdmin = false) const;
-
-    /**
-     * @brief 从视图模型更新账户
-     * @param account 账户对象
-     * @return 操作结果
-     */
-    OperationResult updateAccountFromViewModel(const Account &account);
-
-    /**
-     * @brief 验证管理员操作
-     * @param adminCardNumber 管理员卡号
-     * @return 操作结果
-     */
-    OperationResult validateAdminOperation(const QString &adminCardNumber) const;
-
-    /**
-     * @brief 检查账户是否存在
-     * @param cardNumber 卡号
-     * @return 如果账户存在返回true，否则返回false
-     */
-    bool accountExists(const QString &cardNumber) const;
 
 private:
     //!< 账户存储库
@@ -369,6 +270,6 @@ private:
     //!< 账户分析服务
     std::unique_ptr<AccountAnalyticsService> m_analyticsService;
     
-    //!< 交易记录模型
+    //!< 交易模型
     TransactionModel* m_transactionModel;
 };

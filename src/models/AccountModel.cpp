@@ -205,68 +205,6 @@ double AccountModel::getTransactionFrequency(const QString &cardNumber, int days
     return m_analyticsService->getTransactionFrequency(cardNumber, days);
 }
 
-// ====================================
-// === 新增方法 ===
-// ====================================
-
-OperationResult AccountModel::validateCredentials(const QString &cardNumber, const QString &pin) const
-{
-    return m_validator->validateCredentials(cardNumber, pin);
-}
-
-OperationResult AccountModel::validateWithdrawal(const QString &cardNumber, double amount) const
-{
-    return m_validator->validateWithdrawal(cardNumber, amount);
-}
-
-OperationResult AccountModel::validateDeposit(const QString &cardNumber, double amount) const
-{
-    return m_validator->validateDeposit(cardNumber, amount);
-}
-
-OperationResult AccountModel::validateTransfer(const QString &fromCardNumber, const QString &toCardNumber, double amount) const
-{
-    return m_validator->validateTransfer(fromCardNumber, toCardNumber, amount);
-}
-
-void AccountModel::recordTransaction(const QString &cardNumber, 
-                                    TransactionType type,
-                                    double amount, 
-                                    double balanceAfter,
-                                    const QString &description, 
-                                    const QString &targetCard)
-{
-    if (m_transactionModel) {
-        m_transactionModel->recordTransaction(cardNumber, type, amount, balanceAfter, description, targetCard);
-    } else {
-        qWarning() << "交易模型未设置，无法记录交易";
-    }
-}
-
-OperationResult AccountModel::validateTargetAccount(const QString &targetCardNumber) const
-{
-    // 完全重写此方法，提高可靠性
-    if (!m_validator) {
-        return OperationResult::Failure("验证器未初始化");
-    }
-    return m_validator->validateTargetAccount(targetCardNumber);
-}
-
-bool AccountModel::getTargetAccountInfo(const QString &targetCardNumber, 
-                                      QString &outHolderName, 
-                                      bool &outIsLocked) const
-{
-    std::optional<Account> accountOpt = m_repository->findByCardNumber(targetCardNumber);
-    if (!accountOpt) {
-        return false;
-    }
-    
-    const Account& account = accountOpt.value();
-    outHolderName = account.holderName;
-    outIsLocked = account.isLocked;
-    return true;
-}
-
 QVariantList AccountModel::getAllAccountsAsVariantList() const
 {
     QVariantList result;
@@ -284,35 +222,4 @@ QVariantList AccountModel::getAllAccountsAsVariantList() const
     }
     
     return result;
-}
-
-OperationResult AccountModel::validateCreateAccount(const QString &cardNumber, 
-                                                  const QString &pin, 
-                                                  const QString &holderName,
-                                                  double balance, 
-                                                  double withdrawLimit, 
-                                                  bool isAdmin) const
-{
-    return m_validator->validateCreateAccount(cardNumber, pin, holderName, balance, withdrawLimit, isAdmin);
-}
-
-OperationResult AccountModel::updateAccountFromViewModel(const Account &account)
-{
-    // 验证账户是否存在
-    if (!m_repository->accountExists(account.cardNumber)) {
-        return OperationResult::Failure("账户不存在");
-    }
-    
-    // 保存账户
-    return m_repository->saveAccount(account);
-}
-
-OperationResult AccountModel::validateAdminOperation(const QString &adminCardNumber) const
-{
-    return m_validator->validateAdminOperation(adminCardNumber);
-}
-
-bool AccountModel::accountExists(const QString &cardNumber) const
-{
-    return m_repository->accountExists(cardNumber);
 }

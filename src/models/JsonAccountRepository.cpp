@@ -214,12 +214,13 @@ bool JsonAccountRepository::loadAccounts()
         qWarning() << "管理员账户未加载，创建新管理员账户";
         Account admin;
         admin.cardNumber = "9999888877776666";
-        admin.pin = "8888";
         admin.holderName = "管理员";
         admin.balance = 50000.0;
         admin.withdrawLimit = 10000.0;
         admin.isLocked = false;
         admin.isAdmin = true;
+        // 设置PIN码（自动哈希）
+        admin.setPin("8888");
         m_accounts[admin.cardNumber] = admin;
     }
 
@@ -243,7 +244,7 @@ void JsonAccountRepository::addAccount(const Account& account)
  */
 void JsonAccountRepository::initializeTestAccounts()
 {
-    // 添加普通测试账户
+    // 添加普通测试账户（使用构造函数将自动哈希PIN）
     Account account1("1234567890123456", "1234", "张三", 5000.0, 2000.0, false, false);
     addAccount(account1);
 

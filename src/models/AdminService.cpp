@@ -50,8 +50,8 @@ LoginResult AdminService::performAdminLogin(const QString& cardNumber, const QSt
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     const Account& account = accountOpt.value(); // 验证通过后一定存在
     
-    // 记录管理员登录操作
-    logAdminOperation(cardNumber, "管理员登录", "", "管理员登录成功");
+    // 不再记录管理员登录操作
+    // logAdminOperation(cardNumber, "管理员登录", "", "管理员登录成功");
     
     // 返回成功的登录结果，包含账户信息
     return LoginResult::Success(
@@ -89,7 +89,7 @@ OperationResult AdminService::createAccount(const QString& cardNumber,
     // 创建新账户
     Account newAccount(
         cardNumber,
-        pin,
+        pin,  // 构造函数中会自动哈希PIN码
         holderName,
         balance,
         withdrawLimit,
@@ -223,6 +223,11 @@ OperationResult AdminService::setAccountLockStatus(const QString& cardNumber, bo
     // 更新锁定状态
     account.isLocked = locked;
     
+    // 如果解锁账户，同时清除临时锁定和登录失败计数
+    if (!locked) {
+        account.resetFailedLoginAttempts();
+    }
+    
     // 保存更新后的账户
     OperationResult saveResult = m_repository->saveAccount(account);
     if (!saveResult.success) {
@@ -260,8 +265,11 @@ OperationResult AdminService::resetPin(const QString& cardNumber, const QString&
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     Account account = accountOpt.value();
     
-    // 更新PIN码
-    account.pin = newPin;
+    // 使用安全的方法更新PIN码
+    account.setPin(newPin);
+    
+    // 重置账户的失败登录次数和临时锁定
+    account.resetFailedLoginAttempts();
     
     // 保存更新后的账户
     OperationResult saveResult = m_repository->saveAccount(account);
@@ -270,8 +278,8 @@ OperationResult AdminService::resetPin(const QString& cardNumber, const QString&
     }
     
     // 记录重置PIN码操作
-    logAdminOperation("", "重置PIN码", cardNumber, 
-                      QString("重置账户PIN码: %1, 持卡人: %2").arg(cardNumber).arg(account.holderName));
+    logAdminOperation("", "重置安全信息", cardNumber, 
+                      QString("重置账户安全信息: %1, 持卡人: %2").arg(cardNumber).arg(account.holderName));
     
     return OperationResult::Success();
 }
@@ -335,6 +343,13 @@ void AdminService::logAdminOperation(const QString& adminCardNumber,
                                    const QString& targetCardNumber, 
                                    const QString& description)
 {
+    // 不记录登录、登出和PIN码相关的操作
+    if (operationType.contains("登录") || 
+        operationType.contains("登出") || 
+        operationType.contains("PIN码")) {
+        return;
+    }
+    
     if (m_transactionModel) {
         // 使用操作类型作为交易描述前缀
         QString fullDescription = operationType;
