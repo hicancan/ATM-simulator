@@ -24,9 +24,6 @@ AccountViewModel::AccountViewModel(QObject *parent)
     , m_isAdmin(false)
     , m_cardNumber("")
     , m_errorMessage("")
-    , m_balance(0.0)
-    , m_withdrawLimit(0.0)
-    , m_holderName("")
     , m_multiDayPredictions()
 {
     // 构造函数初始化成员变量，无复杂逻辑。
@@ -178,9 +175,6 @@ bool AccountViewModel::login(const QString &pin)
         m_isLoggedIn = true;
         m_isAdmin = loginResult.isAdmin;
         
-        // 移除登录交易记录
-        // recordTransaction(TransactionType::Other, 0.0, loginResult.balance, "登录系统");
-
         // 发出信号通知 UI
         emit isLoggedInChanged();
         emit holderNameChanged();
@@ -270,12 +264,6 @@ bool AccountViewModel::withdraw(double amount)
     // 执行取款操作
     OperationResult withdrawResult = m_accountModel.withdrawAmount(m_cardNumber, amount);
     if (withdrawResult.success) {
-        // 不再需要在此记录交易，AccountService 已经记录了
-        // 移除冗余代码:
-        // recordTransaction(TransactionType::Withdrawal, amount, 
-        //                  m_accountModel.getBalance(m_cardNumber), 
-        //                  "取款");
-        
         // 通知余额变化
         emit balanceChanged();
         
@@ -314,12 +302,6 @@ bool AccountViewModel::deposit(double amount)
     // 执行存款操作
     OperationResult depositResult = m_accountModel.depositAmount(m_cardNumber, amount);
     if (depositResult.success) {
-        // 不再需要在此记录交易，AccountService 已经记录了
-        // 移除冗余代码:
-        // recordTransaction(TransactionType::Deposit, amount, 
-        //                  m_accountModel.getBalance(m_cardNumber), 
-        //                  "存款");
-        
         // 通知余额变化
         emit balanceChanged();
         
@@ -359,14 +341,6 @@ bool AccountViewModel::transfer(const QString &targetCard, double amount)
     // 执行转账操作
     OperationResult transferResult = m_accountModel.transferAmount(m_cardNumber, targetCard, amount);
     if (transferResult.success) {
-        // 不再需要在这里记录交易，因为 AccountService 已经记录了
-        // 移除以下代码块，避免重复记录:
-        // String targetHolderName = getTargetCardHolderName(targetCard);
-        // String description = QString("转账 %1 元到 %2").arg(amount).arg(targetHolderName.isEmpty() ? targetCard : targetHolderName);
-        // recordTransaction(TransactionType::Transfer, amount, 
-        //                  m_accountModel.getBalance(m_cardNumber), 
-        //                  description, targetCard);
-        
         // 通知余额变化
         emit balanceChanged();
         
@@ -436,9 +410,6 @@ bool AccountViewModel::changePassword(const QString &currentPin, const QString &
     // 调用 Model 层直接使用changePin方法修改PIN码
     OperationResult result = m_accountModel.changePin(m_cardNumber, currentPin, newPin, confirmPin);
     if (result.success) {
-        // 移除PIN码修改交易记录
-        // recordTransaction(TransactionType::Other, 0.0, balance(), "修改PIN码成功");
-
         // 通知 UI 操作完成
         emit transactionCompleted(true, "PIN码修改成功");
         return true;
@@ -455,15 +426,6 @@ bool AccountViewModel::changePassword(const QString &currentPin, const QString &
 void AccountViewModel::logout()
 {
     if (m_isLoggedIn) {
-        // 在清除卡号之前，保存当前卡号和余额用于交易记录
-        QString oldCardNumber = m_cardNumber;
-        double oldBalance = balance();
-
-        // 移除登出交易记录
-        // if (!oldCardNumber.isEmpty()) {
-        //     recordTransaction(TransactionType::Other, 0.0, oldBalance, "登出系统");
-        // }
-
         // 重置视图状态
         m_isLoggedIn = false;
         m_isAdmin = false;
@@ -495,35 +457,6 @@ void AccountViewModel::clearError()
     if (!m_errorMessage.isEmpty()) {
         m_errorMessage.clear();
         emit errorMessageChanged(); // 通知 UI 属性改变
-    }
-}
-
-/**
- * @brief 辅助方法：记录交易
- * @param type 交易类型
- * @param amount 交易金额
- * @param balanceAfter 交易后余额
- * @param description 交易描述
- * @param targetCard 目标卡号 (转账时使用)
- */
-void AccountViewModel::recordTransaction(TransactionType type, double amount, double balanceAfter, const QString &description, const QString &targetCard)
-{
-    // 直接使用 TransactionModel 的方法记录交易
-    if (m_transactionModel) {
-        m_transactionModel->recordTransaction(
-            m_cardNumber, 
-            type, 
-            amount, 
-            balanceAfter, 
-            description, 
-            targetCard
-        );
-        
-        // 触发信号通知交易视图模型更新
-        emit transactionRecorded();
-    }
-    else {
-        qWarning() << "交易模型未设置，无法记录交易";
     }
 }
 

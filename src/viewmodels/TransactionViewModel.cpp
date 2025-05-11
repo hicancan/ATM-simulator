@@ -7,7 +7,6 @@
  * 从 TransactionModel 获取交易数据并提供给 QML。
  */
 #include "TransactionViewModel.h"
-#include <QLocale> // 用于备用的金额格式化
 #include <QDebug>
 
 /**
@@ -104,8 +103,10 @@ void TransactionViewModel::setCardNumber(const QString &cardNumber)
 {
     if (m_cardNumber != cardNumber) {
         m_cardNumber = cardNumber;
-        emit cardNumberChanged(); // 通知 QML
-        refreshTransactions(); // 为新的卡号刷新交易记录
+        emit cardNumberChanged();
+        
+        // 添加刷新交易记录的功能
+        refreshTransactions();
     }
 }
 
@@ -150,109 +151,64 @@ void TransactionViewModel::setTransactionModel(TransactionModel *model)
  */
 void TransactionViewModel::refreshTransactions()
 {
-    // 仅当 TransactionModel 已设置且卡号可用时才刷新
-    if (!m_transactionModel || m_cardNumber.isEmpty()) {
-        beginResetModel(); // 在清除数据前通知 QML
-        m_transactions.clear(); // 清空当前列表
-        endResetModel(); // 在清除数据后通知 QML
-        return;
-    }
-
     beginResetModel(); // 在数据改变前通知 QML
-    // 从模型中获取最近的交易记录
-    m_transactions = m_transactionModel->getRecentTransactions(m_cardNumber, m_recentTransactionCount);
-    endResetModel(); // 在数据改变后通知 QML
-
-    qDebug() << "刷新交易记录: 卡号=" << m_cardNumber << ", 找到记录数=" << m_transactions.size();
-}
-
-/**
- * @brief 更新卡号并刷新交易记录列表
- * @param cardNumber 新的卡号
- */
-void TransactionViewModel::updateCardNumber(const QString &cardNumber)
-{
-    // 记录调用日志
-    qDebug() << "TransactionViewModel::updateCardNumber 被调用，卡号:" << cardNumber;
-
-    // 更新卡号并刷新
-    if (m_cardNumber != cardNumber) {
-        m_cardNumber = cardNumber;
-        emit cardNumberChanged(); // 通知 QML
-        refreshTransactions(); // 为新卡号刷新交易记录
-
-        qDebug() << "卡号已更新，刷新交易记录完成，记录数量:" << m_transactions.size();
+    
+    // 仅当 TransactionModel 已设置且卡号可用时才获取交易
+    if (m_transactionModel && !m_cardNumber.isEmpty()) {
+        // 从模型中获取最近的交易记录
+        m_transactions = m_transactionModel->getRecentTransactions(m_cardNumber, m_recentTransactionCount);
+        qDebug() << "刷新交易记录: 卡号=" << m_cardNumber << ", 找到记录数=" << m_transactions.size();
+    } else {
+        // 清空当前列表
+        m_transactions.clear();
     }
+    
+    endResetModel(); // 在数据改变后通知 QML
 }
 
 // --- 辅助方法 (可调用供 QML 使用) ---
 
 /**
  * @brief 格式化金额为货币字符串
- *
- * 调用 TransactionModel 的格式化方法。
- *
  * @param amount 金额
  * @return 格式化后的金额字符串
  */
 QString TransactionViewModel::formatAmount(double amount) const
 {
-    // 如果 TransactionModel 可用，使用其格式化方法
+    // 直接调用TransactionModel的方法
     if (m_transactionModel) {
         return m_transactionModel->formatAmount(amount);
     }
-
-    // 如果 Model 不可用，提供备用实现
-    QLocale locale = QLocale::system();
-    return locale.toString(amount, 'f', 2);
+    qWarning() << "formatAmount: TransactionModel未设置";
+    return QString::number(amount, 'f', 2);
 }
 
 /**
  * @brief 格式化日期时间为字符串
- *
- * 调用 TransactionModel 的格式化方法。
- *
  * @param dateTime 日期时间对象
  * @return 格式化后的日期时间字符串
  */
 QString TransactionViewModel::formatDate(const QDateTime &dateTime) const
 {
-    // 如果 TransactionModel 可用，使用其格式化方法
+    // 直接调用TransactionModel的方法
     if (m_transactionModel) {
         return m_transactionModel->formatDate(dateTime);
     }
-
-    // 如果 Model 不可用，提供备用实现
+    qWarning() << "formatDate: TransactionModel未设置";
     return dateTime.toString("yyyy-MM-dd hh:mm:ss");
 }
 
 /**
  * @brief 获取交易类型的显示名称
- *
- * 调用 TransactionModel 的格式化方法。
- *
  * @param type 交易类型枚举的整型值
  * @return 交易类型的中文名称
  */
 QString TransactionViewModel::getTransactionTypeName(int type) const
 {
-    // 如果 TransactionModel 可用，使用其格式化方法
+    // 直接调用TransactionModel的方法
     if (m_transactionModel) {
         return m_transactionModel->getTransactionTypeName(type);
     }
-
-    // 如果 Model 不可用，提供备用实现
-    switch (static_cast<TransactionType>(type)) {
-        case TransactionType::Deposit:
-            return "存款";
-        case TransactionType::Withdrawal:
-            return "取款";
-        case TransactionType::BalanceInquiry:
-            return "余额查询";
-        case TransactionType::Transfer:
-            return "转账";
-        case TransactionType::Other:
-        default:
-            return "其他";
-    }
+    qWarning() << "getTransactionTypeName: TransactionModel未设置";
+    return QString::number(type);
 }

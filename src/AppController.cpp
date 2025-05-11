@@ -32,9 +32,9 @@ AppController::AppController(QObject *parent)
     connect(m_accountViewModel, &AccountViewModel::loggedOut,
             this, [this]() { switchToPage("LoginPage"); });
 
-    // 连接 AccountViewModel 的 transactionRecorded 信号到 TransactionViewModel 的 refreshTransactions 槽
+    // 连接 AccountViewModel 的 transactionCompleted 信号到 TransactionViewModel 的 refreshTransactions 槽
     // 确保当有新交易记录时，交易历史界面能及时刷新
-    connect(m_accountViewModel, &AccountViewModel::transactionRecorded,
+    connect(m_accountViewModel, &AccountViewModel::transactionCompleted,
             m_transactionViewModel, &TransactionViewModel::refreshTransactions);
 
     // 将 TransactionModel 实例注入到 AccountModel 中

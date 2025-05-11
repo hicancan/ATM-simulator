@@ -235,12 +235,6 @@ signals:
      */
     void transactionCompleted(bool success, const QString &message);
     /**
-     * @brief 交易记录被添加时发出的信号
-     *
-     * 通知 TransactionViewModel 更新交易记录列表。
-     */
-    void transactionRecorded();
-    /**
      * @brief 账户列表发生变化时发出的信号
      *
      * 例如在创建、更新或删除账户后。
@@ -258,21 +252,8 @@ private:
     // --- 私有成员变量 (支持 Q_PROPERTY) ---
     QString m_cardNumber;       //!< 当前登录的账户卡号
     QString m_errorMessage;     //!< 当前显示的错误信息
-    double m_balance;           //!< 当前账户余额
     double m_predictedBalance;  //!< 预测余额
     QVariantMap m_multiDayPredictions; //!< 多日期预测余额
-    double m_withdrawLimit;     //!< 取款限额
     bool m_isLoggedIn;          //!< 是否已登录
     bool m_isAdmin;             //!< 是否为管理员账户
-    QString m_holderName;       //!< 持卡人姓名
-
-    /**
-     * @brief 辅助方法：记录交易
-     * @param type 交易类型
-     * @param amount 交易金额
-     * @param balanceAfter 交易后余额
-     * @param description 交易描述
-     * @param targetCard 目标卡号 (转账时使用)
-     */
-    void recordTransaction(TransactionType type, double amount, double balanceAfter, const QString &description, const QString &targetCard = QString());
 };

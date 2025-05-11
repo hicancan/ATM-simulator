@@ -29,10 +29,6 @@ public:
      * @param parent 父对象
      */
     explicit PrinterViewModel(QObject *parent = nullptr);
-    /**
-     * @brief 析构函数
-     */
-    ~PrinterViewModel();
 
     // --- 可调用方法 (供 QML 调用) ---
     /**

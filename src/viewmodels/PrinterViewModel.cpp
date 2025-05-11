@@ -21,16 +21,6 @@ PrinterViewModel::PrinterViewModel(QObject *parent)
 }
 
 /**
- * @brief 析构函数
- *
- * 析构函数，无特殊清理逻辑，因为 PrinterModel 是成员对象，会自动销毁。
- */
-PrinterViewModel::~PrinterViewModel()
-{
-    // 析构函数
-}
-
-/**
  * @brief 打印存款回单
  *
  * 调用 PrinterModel 生成存款回单的 HTML 内容，并触发打印。

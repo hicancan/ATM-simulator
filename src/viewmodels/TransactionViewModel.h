@@ -93,12 +93,6 @@ public:
      * 从模型中重新获取最近的交易记录。
      */
     Q_INVOKABLE void refreshTransactions();
-    /**
-     * @brief 更新卡号并刷新交易记录列表
-     * @param cardNumber 新的卡号
-     */
-    Q_INVOKABLE void updateCardNumber(const QString &cardNumber);
-
 
     // --- 辅助方法 (可调用供 QML 使用) ---
     /**
