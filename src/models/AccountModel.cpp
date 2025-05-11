@@ -18,7 +18,7 @@ AccountModel::AccountModel(QObject *parent)
     : QObject(parent)
     , m_transactionModel(nullptr)
 {
-    // 创建账户存储库
+    // 创建账户存储库（使用默认构造函数，它会自行管理JsonPersistenceManager）
     m_repository = std::make_unique<JsonAccountRepository>();
     
     // 创建验证器

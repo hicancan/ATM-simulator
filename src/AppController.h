@@ -17,6 +17,7 @@
 #include "viewmodels/TransactionViewModel.h"
 #include "viewmodels/PrinterViewModel.h"
 #include "models/TransactionModel.h" // AppController 需要创建 TransactionModel
+#include "models/JsonPersistenceManager.h" // 添加JsonPersistenceManager头文件
 
 // 将类型声明为Qt元对象系统的已知类型，以便QML可以使用这些类型
 Q_DECLARE_METATYPE(AccountViewModel*)
@@ -102,6 +103,8 @@ signals:
 private:
     //!< 当前页面名称
     QString m_currentPage = "LoginPage";
+    //!< JsonPersistenceManager 实例指针 (由 AppController 持有并注入到存储库)
+    JsonPersistenceManager* m_persistenceManager;
     //!< AccountViewModel 实例指针
     AccountViewModel* m_accountViewModel;
     //!< TransactionViewModel 实例指针
@@ -109,5 +112,5 @@ private:
     //!< PrinterViewModel 实例指针
     PrinterViewModel* m_printerViewModel;
     //!< TransactionModel 实例指针 (由 AppController 持有并注入到 ViewModel)
-    TransactionModel* m_transactionModel; // 添加 TransactionModel 成员变量
+    TransactionModel* m_transactionModel;
 };

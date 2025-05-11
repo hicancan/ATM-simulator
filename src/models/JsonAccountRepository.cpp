@@ -6,36 +6,40 @@
  * 实现了JsonAccountRepository类中定义的文件操作和账户管理方法。
  */
 #include "JsonAccountRepository.h"
-#include <QDir>
-#include <QFile>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QStandardPaths>
 #include <QDebug>
 
 /**
+ * @brief 默认构造函数
+ *
+ * 创建自己的JSON持久化管理器实例，使用默认的"accounts.json"文件。
+ */
+JsonAccountRepository::JsonAccountRepository() 
+    : m_filename("accounts.json")
+    , m_persistenceManager(new JsonPersistenceManager())
+    , m_isDirty(false)
+    , m_ownsPersistenceManager(true)
+{
+    // 尝试从文件加载账户数据
+    // 如果加载失败，则初始化测试账户并保存到文件
+    if (!loadAccounts()) {
+        qDebug() << "无法加载账户数据，初始化测试账户";
+        initializeTestAccounts();
+        saveAccounts(); // 保存初始化的测试账户
+    }
+}
+
+/**
  * @brief 构造函数
- * @param dataPath 数据存储路径
+ * @param persistenceManager JSON持久化管理器
  * @param filename 账户数据文件名
  */
-JsonAccountRepository::JsonAccountRepository(const QString& dataPath, const QString& filename)
+JsonAccountRepository::JsonAccountRepository(JsonPersistenceManager* persistenceManager, 
+                                           const QString& filename)
     : m_filename(filename)
+    , m_persistenceManager(persistenceManager)
+    , m_isDirty(false)
+    , m_ownsPersistenceManager(false)
 {
-    // 如果未提供数据路径，则使用应用程序的本地数据目录
-    if (dataPath.isEmpty()) {
-        m_dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    } else {
-        m_dataPath = dataPath;
-    }
-    
-    QDir dir(m_dataPath);
-    // 如果目录不存在，则创建它
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    qDebug() << "账户数据存储路径:" << m_dataPath;
-
     // 尝试从文件加载账户数据
     // 如果加载失败，则初始化测试账户并保存到文件
     if (!loadAccounts()) {
@@ -54,8 +58,16 @@ JsonAccountRepository::JsonAccountRepository(const QString& dataPath, const QStr
  */
 JsonAccountRepository::~JsonAccountRepository()
 {
-    // 在析构函数中保存账户数据
-    saveAccounts();
+    // 仅当数据被修改时才保存
+    if (m_isDirty) {
+        saveAccounts();
+    }
+    
+    // 如果持有持久化管理器的所有权，则释放它
+    if (m_ownsPersistenceManager && m_persistenceManager) {
+        delete m_persistenceManager;
+        m_persistenceManager = nullptr;
+    }
 }
 
 /**
@@ -72,6 +84,7 @@ OperationResult JsonAccountRepository::saveAccount(const Account& account)
     
     // 添加或更新账户到内存映射
     m_accounts[account.cardNumber] = account;
+    m_isDirty = true;
     
     // 保存所有账户数据到文件
     if (!saveAccounts()) {
@@ -95,6 +108,7 @@ OperationResult JsonAccountRepository::deleteAccount(const QString& cardNumber)
     
     // 从内存映射中移除账户
     m_accounts.remove(cardNumber);
+    m_isDirty = true;
     
     // 保存所有账户数据到文件
     if (!saveAccounts()) {
@@ -147,14 +161,6 @@ bool JsonAccountRepository::accountExists(const QString& cardNumber) const
  */
 bool JsonAccountRepository::saveAccounts()
 {
-    QString filePath = m_dataPath + "/" + m_filename;
-    QFile file(filePath);
-
-    if (!file.open(QIODevice::WriteOnly)) {
-        qWarning() << "无法打开文件保存账户数据:" << filePath << ", 错误:" << file.errorString();
-        return false;
-    }
-
     QJsonArray accountsArray;
 
     // 将所有账户转换为 JSON 数组
@@ -162,14 +168,14 @@ bool JsonAccountRepository::saveAccounts()
         accountsArray.append(account.toJson());
     }
 
-    QJsonDocument doc(accountsArray);
-
-    // 写入文件
-    file.write(doc.toJson());
-    file.close();
-
-    qDebug() << "成功保存" << m_accounts.size() << "个账户到" << filePath;
-    return true;
+    // 使用持久化管理器保存数据
+    bool success = m_persistenceManager->saveToFile(m_filename, accountsArray);
+    if (success) {
+        m_isDirty = false;
+        qDebug() << "成功保存" << m_accounts.size() << "个账户";
+    }
+    
+    return success;
 }
 
 /**
@@ -178,26 +184,10 @@ bool JsonAccountRepository::saveAccounts()
  */
 bool JsonAccountRepository::loadAccounts()
 {
-    QString filePath = m_dataPath + "/" + m_filename;
-    QFile file(filePath);
-
-    if (!file.exists()) {
-        qWarning() << "账户数据文件不存在:" << filePath;
-        return false;
-    }
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "无法打开文件加载账户数据:" << filePath << ", 错误:" << file.errorString();
-        return false;
-    }
-
-    QByteArray data = file.readAll();
-    file.close();
-
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-
-    if (doc.isNull() || !doc.isArray()) {
-        qWarning() << "账户数据文件格式无效:" << filePath;
+    QJsonArray accountsArray;
+    
+    // 使用持久化管理器加载数据
+    if (!m_persistenceManager->loadFromFile(m_filename, accountsArray)) {
         return false;
     }
 
@@ -205,7 +195,6 @@ bool JsonAccountRepository::loadAccounts()
     m_accounts.clear();
 
     // 从 JSON 数组加载账户数据
-    QJsonArray accountsArray = doc.array();
     for (const QJsonValue &value : accountsArray) {
         if (value.isObject()) {
             Account account = Account::fromJson(value.toObject());
@@ -226,9 +215,10 @@ bool JsonAccountRepository::loadAccounts()
         // 设置PIN码（自动哈希）
         admin.setPin("8888");
         m_accounts[admin.cardNumber] = admin;
+        m_isDirty = true;
     }
 
-    qDebug() << "成功从" << filePath << "加载" << m_accounts.size() << "个账户";
+    qDebug() << "成功加载" << m_accounts.size() << "个账户";
     return true;
 }
 
@@ -239,6 +229,7 @@ bool JsonAccountRepository::loadAccounts()
 void JsonAccountRepository::addAccount(const Account& account)
 {
     m_accounts[account.cardNumber] = account;
+    m_isDirty = true;
 }
 
 /**

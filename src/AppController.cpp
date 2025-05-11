@@ -10,7 +10,7 @@
 #include "viewmodels/AccountViewModel.h"
 #include "viewmodels/TransactionViewModel.h"
 #include "viewmodels/PrinterViewModel.h"
-#include "models/TransactionModel.h" // 包含 TransactionModel 头文件
+#include "models/JsonAccountRepository.h"
 #include <QDebug>
 #include <QQmlComponent> // 包含 QQmlComponent 头文件
 
@@ -20,13 +20,21 @@
  */
 AppController::AppController(QObject *parent)
     : QObject(parent)
-    // 创建 ViewModel 实例，并设置 AppController 为它们的父对象
-    , m_accountViewModel(new AccountViewModel(this))
-    , m_transactionViewModel(new TransactionViewModel(this))
-    , m_printerViewModel(new PrinterViewModel(this))
-    // 创建 TransactionModel 实例，并设置 AppController 为父对象
-    , m_transactionModel(new TransactionModel(this))
 {
+    // 首先创建持久化管理器，它将被其他组件使用
+    m_persistenceManager = new JsonPersistenceManager(this);
+    
+    // 创建账户存储库，使用持久化管理器
+    JsonAccountRepository* accountRepository = new JsonAccountRepository(m_persistenceManager, "accounts.json");
+    
+    // 创建交易模型，使用持久化管理器
+    m_transactionModel = new TransactionModel(m_persistenceManager, "transactions.json", this);
+    
+    // 创建 ViewModel 实例，并设置 AppController 为它们的父对象
+    m_accountViewModel = new AccountViewModel(this);
+    m_transactionViewModel = new TransactionViewModel(this);
+    m_printerViewModel = new PrinterViewModel(this);
+
     // 连接信号槽
     // 当 AccountViewModel 发出 loggedOut 信号时，切换页面到 LoginLoginPage
     connect(m_accountViewModel, &AccountViewModel::loggedOut,
@@ -53,7 +61,8 @@ AppController::AppController(QObject *parent)
  */
 AppController::~AppController()
 {
-    // QObject 父子关系会自动处理内存清理，无需手动删除指针
+    // JsonPersistenceManager现在是QObject的子对象，会自动被父对象删除
+    // QObject 父子关系会自动处理内存清理
 }
 
 /**

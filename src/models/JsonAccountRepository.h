@@ -13,6 +13,7 @@
 #include <optional>
 #include "IAccountRepository.h"
 #include "Account.h"
+#include "JsonPersistenceManager.h"
 
 /**
  * @brief JSON账户存储库类
@@ -22,12 +23,20 @@
 class JsonAccountRepository : public IAccountRepository {
 public:
     /**
-     * @brief 构造函数
-     * @param dataPath 数据存储路径，默认使用应用程序的本地数据目录
-     * @param filename 账户数据文件名，默认为"accounts.json"
+     * @brief 默认构造函数
+     *
+     * 创建一个使用默认JSON持久化管理器的账户存储库。
+     * 注意：此构造函数会自动创建一个持久化管理器并负责其生命周期。
      */
-    explicit JsonAccountRepository(const QString& dataPath = QString(), 
-                                  const QString& filename = "accounts.json");
+    explicit JsonAccountRepository();
+
+    /**
+     * @brief 构造函数
+     * @param persistenceManager JSON持久化管理器
+     * @param filename 账户数据文件名
+     */
+    explicit JsonAccountRepository(JsonPersistenceManager* persistenceManager, 
+                                  const QString& filename);
     
     /**
      * @brief 析构函数
@@ -99,9 +108,15 @@ private:
     //!< 账户内存存储（卡号->账户映射）
     QMap<QString, Account> m_accounts;
     
-    //!< 数据存储路径
-    QString m_dataPath;
-    
     //!< 账户数据文件名
     QString m_filename;
+    
+    //!< JSON持久化管理器
+    JsonPersistenceManager* m_persistenceManager;
+    
+    //!< 标记数据是否被修改
+    bool m_isDirty;
+    
+    //!< 标记是否拥有持久化管理器的所有权
+    bool m_ownsPersistenceManager;
 }; 

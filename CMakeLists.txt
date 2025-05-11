@@ -25,6 +25,7 @@ set(SOURCE_FILES
     src/models/AccountService.cpp
     src/models/AdminService.cpp
     src/models/AccountAnalyticsService.cpp
+    src/models/JsonPersistenceManager.cpp
     src/viewmodels/AccountViewModel.cpp
     src/viewmodels/TransactionViewModel.cpp
     src/viewmodels/PrinterViewModel.cpp
@@ -44,6 +45,7 @@ set(HEADER_FILES
     src/models/AccountService.h
     src/models/AdminService.h
     src/models/AccountAnalyticsService.h
+    src/models/JsonPersistenceManager.h
     src/viewmodels/AccountViewModel.h
     src/viewmodels/TransactionViewModel.h
     src/viewmodels/PrinterViewModel.h

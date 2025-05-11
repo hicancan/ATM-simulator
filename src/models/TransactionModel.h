@@ -16,6 +16,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLocale> // 用于格式化货币/数字
+#include "JsonPersistenceManager.h"
 
 /**
  * @brief 交易类型枚举
@@ -89,9 +90,13 @@ class TransactionModel : public QObject
 public:
     /**
      * @brief 构造函数
+     * @param persistenceManager JSON持久化管理器
+     * @param filename 交易数据文件名，默认为"transactions.json"
      * @param parent 父对象
      */
-    explicit TransactionModel(QObject *parent = nullptr);
+    explicit TransactionModel(JsonPersistenceManager* persistenceManager,
+                            const QString& filename = "transactions.json",
+                            QObject *parent = nullptr);
     /**
      * @brief 析构函数
      */
@@ -173,16 +178,14 @@ public:
     // --- 持久化存储方法 ---
     /**
      * @brief 保存交易记录到文件
-     * @param filename 文件名 (默认为 transactions.json)
      * @return 如果成功保存返回 true，否则返回 false
      */
-    bool saveTransactions(const QString &filename = "transactions.json");
+    bool saveTransactions();
     /**
      * @brief 从文件加载交易记录
-     * @param filename 文件名 (默认为 transactions.json)
      * @return 如果成功加载返回 true，否则返回 false
      */
-    bool loadTransactions(const QString &filename = "transactions.json");
+    bool loadTransactions();
 
     // --- 数据格式化方法 ---
     /**
@@ -214,7 +217,13 @@ private:
 
     //!< 交易记录内存存储
     QVector<Transaction> m_transactions;
-
-    //!< 数据存储路径
-    QString m_dataPath;
+    
+    //!< JSON持久化管理器
+    JsonPersistenceManager* m_persistenceManager;
+    
+    //!< 交易数据文件名
+    QString m_filename;
+    
+    //!< 标记数据是否被修改
+    bool m_isDirty;
 };
