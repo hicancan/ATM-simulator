@@ -471,6 +471,29 @@ void AccountViewModel::setErrorMessage(const QString &message)
 }
 
 /**
+ * @brief 检查管理员权限
+ * @param errorMsg 如果权限检查失败时显示的错误消息
+ * @return 如果当前用户有管理员权限返回true，否则返回false
+ */
+bool AccountViewModel::checkAdminPermission(const QString& errorMsg)
+{
+    // 验证管理员权限
+    if (!m_isLoggedIn || !m_isAdmin) {
+        setErrorMessage(errorMsg);
+        return false;
+    }
+    
+    // 再次验证管理员权限
+    OperationResult adminResult = m_validator.validateAdminOperation(m_cardNumber);
+    if (!adminResult.success) {
+        setErrorMessage(adminResult.errorMessage);
+        return false;
+    }
+    
+    return true;
+}
+
+/**
  * @brief 计算预测余额
  * @param daysInFuture 预测未来天数 (默认为 7 天)
  */
@@ -586,9 +609,8 @@ void AccountViewModel::calculateMultiDayPredictions(const QString &days)
  */
 QVariantList AccountViewModel::getAllAccounts()
 {
-    // 仅允许管理员获取所有账户信息
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("没有权限执行此操作");
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("没有权限执行此操作")) {
         return QVariantList();
     }
 
@@ -612,9 +634,8 @@ bool AccountViewModel::createAccount(const QString &cardNumber, const QString &p
 {
     clearError();
 
-    // 验证管理员权限
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("创建账户需要管理员权限");
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("创建账户需要管理员权限")) {
         return false;
     }
 
@@ -657,16 +678,8 @@ bool AccountViewModel::updateAccount(const QString &cardNumber, const QString &h
 {
     clearError();
 
-    // 验证管理员权限
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("更新账户需要管理员权限");
-        return false;
-    }
-
-    // 再次验证管理员权限
-    OperationResult adminResult = m_validator.validateAdminOperation(m_cardNumber);
-    if (!adminResult.success) {
-        setErrorMessage(adminResult.errorMessage);
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("更新账户需要管理员权限")) {
         return false;
     }
 
@@ -700,16 +713,8 @@ bool AccountViewModel::deleteAccount(const QString &cardNumber)
 {
     clearError();
 
-    // 验证管理员权限
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("删除账户需要管理员权限");
-        return false;
-    }
-
-    // 再次验证管理员权限
-    OperationResult adminResult = m_validator.validateAdminOperation(m_cardNumber);
-    if (!adminResult.success) {
-        setErrorMessage(adminResult.errorMessage);
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("删除账户需要管理员权限")) {
         return false;
     }
 
@@ -741,16 +746,8 @@ bool AccountViewModel::resetAccountPin(const QString &cardNumber, const QString 
 {
     clearError();
 
-    // 验证管理员权限
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("重置PIN码需要管理员权限");
-        return false;
-    }
-
-    // 再次验证管理员权限
-    OperationResult adminResult = m_validator.validateAdminOperation(m_cardNumber);
-    if (!adminResult.success) {
-        setErrorMessage(adminResult.errorMessage);
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("重置PIN码需要管理员权限")) {
         return false;
     }
 
@@ -776,16 +773,8 @@ bool AccountViewModel::setAccountLockStatus(const QString &cardNumber, bool lock
 {
     clearError();
 
-    // 验证管理员权限
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("设置账户锁定状态需要管理员权限");
-        return false;
-    }
-
-    // 再次验证管理员权限
-    OperationResult adminResult = m_validator.validateAdminOperation(m_cardNumber);
-    if (!adminResult.success) {
-        setErrorMessage(adminResult.errorMessage);
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("设置账户锁定状态需要管理员权限")) {
         return false;
     }
 
@@ -813,16 +802,8 @@ bool AccountViewModel::setWithdrawLimit(const QString &cardNumber, double limit)
 {
     clearError();
 
-    // 验证管理员权限
-    if (!m_isLoggedIn || !m_isAdmin) {
-        setErrorMessage("设置取款限额需要管理员权限");
-        return false;
-    }
-
-    // 再次验证管理员权限
-    OperationResult adminResult = m_validator.validateAdminOperation(m_cardNumber);
-    if (!adminResult.success) {
-        setErrorMessage(adminResult.errorMessage);
+    // 使用通用的管理员权限检查方法
+    if (!checkAdminPermission("设置取款限额需要管理员权限")) {
         return false;
     }
 

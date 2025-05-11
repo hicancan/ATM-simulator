@@ -46,9 +46,9 @@ LoginResult AdminService::performAdminLogin(const QString& cardNumber, const QSt
         return LoginResult::Failure(validationResult.errorMessage);
     }
     
-    // 获取账户信息
+    // 获取账户信息 - 验证通过后账户一定存在
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    const Account& account = accountOpt.value(); // 验证通过后一定存在
+    const Account& account = accountOpt.value();
     
     // 返回成功的登录结果，包含账户信息
     return LoginResult::Success(
@@ -76,7 +76,7 @@ OperationResult AdminService::createAccount(const QString& cardNumber,
                                          double withdrawLimit, 
                                          bool isAdmin)
 {
-    // 验证创建账户操作
+    // 验证创建账户操作 - 使用单一验证方法
     OperationResult validationResult = m_validator->validateCreateAccount(
         cardNumber, pin, holderName, balance, withdrawLimit, isAdmin);
     if (!validationResult.success) {
@@ -122,19 +122,15 @@ OperationResult AdminService::updateAccount(const QString& cardNumber,
                                           double withdrawLimit,
                                           bool isLocked)
 {
-    // 验证更新账户操作
+    // 验证更新账户操作 - 使用单一验证方法
     OperationResult validationResult = m_validator->validateUpdateAccount(
         cardNumber, holderName, balance, withdrawLimit);
     if (!validationResult.success) {
         return validationResult;
     }
     
-    // 获取现有账户
+    // 获取现有账户 - 验证通过后账户一定存在
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    if (!accountOpt) {
-        return OperationResult::Failure("账户不存在");
-    }
-    
     Account account = accountOpt.value();
     
     // 更新账户信息
@@ -164,8 +160,9 @@ OperationResult AdminService::updateAccount(const QString& cardNumber,
 OperationResult AdminService::deleteAccount(const QString& cardNumber)
 {
     // 验证账户是否存在
-    if (!m_repository->accountExists(cardNumber)) {
-        return OperationResult::Failure("账户不存在");
+    OperationResult existResult = m_validator->validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
     }
     
     // 获取账户信息（用于日志）
@@ -204,8 +201,9 @@ OperationResult AdminService::deleteAccount(const QString& cardNumber)
 OperationResult AdminService::setAccountLockStatus(const QString& cardNumber, bool locked)
 {
     // 验证账户是否存在
-    if (!m_repository->accountExists(cardNumber)) {
-        return OperationResult::Failure("账户不存在");
+    OperationResult existResult = m_validator->validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
     }
     
     // 获取现有账户
@@ -254,8 +252,9 @@ OperationResult AdminService::resetPin(const QString& cardNumber, const QString&
     }
     
     // 验证账户是否存在
-    if (!m_repository->accountExists(cardNumber)) {
-        return OperationResult::Failure("账户不存在");
+    OperationResult existResult = m_validator->validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
     }
     
     // 获取现有账户
@@ -295,8 +294,9 @@ OperationResult AdminService::setWithdrawLimit(const QString& cardNumber, double
     }
     
     // 验证账户是否存在
-    if (!m_repository->accountExists(cardNumber)) {
-        return OperationResult::Failure("账户不存在");
+    OperationResult existResult = m_validator->validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
     }
     
     // 获取现有账户

@@ -138,6 +138,44 @@ public:
      */
     OperationResult validateCardNumberFormat(const QString& cardNumber) const;
     
+    /**
+     * @brief 验证账户是否存在
+     * @param cardNumber 卡号
+     * @return 操作结果，如果账户不存在则返回失败
+     */
+    OperationResult validateAccountExists(const QString& cardNumber) const;
+    
+    /**
+     * @brief 验证账户是否锁定
+     * @param cardNumber 卡号
+     * @return 操作结果，如果账户锁定则返回失败
+     */
+    OperationResult validateAccountNotLocked(const QString& cardNumber) const;
+    
+    /**
+     * @brief 验证账户余额是否足够
+     * @param cardNumber 卡号
+     * @param amount 需要的金额
+     * @return 操作结果，如果余额不足则返回失败
+     */
+    OperationResult validateSufficientBalance(const QString& cardNumber, double amount) const;
+    
+    /**
+     * @brief 验证取款限额
+     * @param cardNumber 卡号
+     * @param amount 取款金额
+     * @return 操作结果，如果超过限额则返回失败
+     */
+    OperationResult validateWithdrawLimit(const QString& cardNumber, double amount) const;
+    
+    /**
+     * @brief 验证金额是否为100的倍数
+     * @param amount 金额
+     * @param operationType 操作类型(如"取款"、"存款")
+     * @return 操作结果，如果金额不是100的倍数则返回失败
+     */
+    OperationResult validateAmountMultipleOf100(double amount, const QString& operationType) const;
+    
 private:
     //!< 账户存储库接口指针
     IAccountRepository* m_repository;

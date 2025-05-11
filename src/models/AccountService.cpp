@@ -84,15 +84,15 @@ LoginResult AccountService::performLogin(const QString& cardNumber, const QStrin
  */
 OperationResult AccountService::withdrawAmount(const QString& cardNumber, double amount)
 {
-    // 验证取款操作
+    // 验证取款操作 - 使用单一验证方法
     OperationResult validationResult = m_validator->validateWithdrawal(cardNumber, amount);
     if (!validationResult.success) {
         return validationResult;
     }
     
-    // 获取账户信息
+    // 获取账户信息 - 验证通过后账户一定存在
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    Account account = accountOpt.value(); // 验证通过后一定存在
+    Account account = accountOpt.value();
     
     // 更新余额
     account.balance -= amount;
@@ -126,15 +126,15 @@ OperationResult AccountService::withdrawAmount(const QString& cardNumber, double
  */
 OperationResult AccountService::depositAmount(const QString& cardNumber, double amount)
 {
-    // 验证存款操作
+    // 验证存款操作 - 使用单一验证方法
     OperationResult validationResult = m_validator->validateDeposit(cardNumber, amount);
     if (!validationResult.success) {
         return validationResult;
     }
     
-    // 获取账户信息
+    // 获取账户信息 - 验证通过后账户一定存在
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    Account account = accountOpt.value(); // 验证通过后一定存在
+    Account account = accountOpt.value();
     
     // 更新余额
     account.balance += amount;
@@ -171,18 +171,18 @@ OperationResult AccountService::transferAmount(const QString& fromCardNumber,
                                               const QString& toCardNumber, 
                                               double amount)
 {
-    // 验证转账操作
+    // 验证转账操作 - 使用单一验证方法
     OperationResult validationResult = m_validator->validateTransfer(fromCardNumber, toCardNumber, amount);
     if (!validationResult.success) {
         return validationResult;
     }
     
-    // 获取源账户和目标账户
+    // 获取源账户和目标账户 - 验证通过后账户一定存在
     std::optional<Account> fromAccountOpt = m_repository->findByCardNumber(fromCardNumber);
     std::optional<Account> toAccountOpt = m_repository->findByCardNumber(toCardNumber);
     
-    Account fromAccount = fromAccountOpt.value(); // 验证通过后一定存在
-    Account toAccount = toAccountOpt.value(); // 验证通过后一定存在
+    Account fromAccount = fromAccountOpt.value();
+    Account toAccount = toAccountOpt.value();
     
     // 更新余额
     fromAccount.balance -= amount;
@@ -241,15 +241,15 @@ OperationResult AccountService::changePin(const QString& cardNumber,
                                          const QString& newPin, 
                                          const QString& confirmPin)
 {
-    // 验证PIN码修改操作
+    // 验证PIN码修改操作 - 使用单一验证方法
     OperationResult validationResult = m_validator->validatePinChange(cardNumber, currentPin, newPin, confirmPin);
     if (!validationResult.success) {
         return validationResult;
     }
     
-    // 获取账户并修改PIN码
+    // 获取账户并修改PIN码 - 验证通过后账户一定存在
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    Account account = accountOpt.value(); // 验证通过后一定存在
+    Account account = accountOpt.value();
     
     // 更新PIN码（使用安全的哈希存储）
     account.setPin(newPin);

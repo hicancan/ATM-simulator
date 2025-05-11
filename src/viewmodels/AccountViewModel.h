@@ -249,6 +249,13 @@ private:
     //!< AccountValidator 实例，直接处理验证逻辑
     AccountValidator m_validator;
 
+    /**
+     * @brief 检查管理员权限
+     * @param errorMsg 如果权限检查失败时显示的错误消息
+     * @return 如果当前用户有管理员权限返回true，否则返回false
+     */
+    bool checkAdminPermission(const QString& errorMsg);
+
     // --- 私有成员变量 (支持 Q_PROPERTY) ---
     QString m_cardNumber;       //!< 当前登录的账户卡号
     QString m_errorMessage;     //!< 当前显示的错误信息

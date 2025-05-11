@@ -122,6 +122,129 @@ OperationResult AccountValidator::validateAdminLogin(const QString& cardNumber, 
 }
 
 /**
+ * @brief 验证账户是否存在
+ * @param cardNumber 卡号
+ * @return 操作结果，如果账户不存在则返回失败
+ */
+OperationResult AccountValidator::validateAccountExists(const QString& cardNumber) const
+{
+    if (cardNumber.isEmpty()) {
+        return OperationResult::Failure("卡号不能为空");
+    }
+    
+    if (!m_repository->accountExists(cardNumber)) {
+        return OperationResult::Failure("账户不存在");
+    }
+    
+    return OperationResult::Success();
+}
+
+/**
+ * @brief 验证账户是否锁定
+ * @param cardNumber 卡号
+ * @return 操作结果，如果账户锁定则返回失败
+ */
+OperationResult AccountValidator::validateAccountNotLocked(const QString& cardNumber) const
+{
+    // 首先验证账户是否存在
+    OperationResult existResult = validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
+    }
+    
+    // 获取账户信息
+    std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
+    const Account& account = accountOpt.value(); // 前面已验证账户存在
+    
+    // 检查账户是否被永久锁定
+    if (account.isLocked) {
+        return OperationResult::Failure("账户已锁定");
+    }
+    
+    // 检查账户是否被临时锁定
+    if (account.isTemporarilyLocked()) {
+        return OperationResult::Failure(
+            QString("由于多次登录失败，账户已临时锁定，请%1分钟后再试")
+                .arg(Account::TEMP_LOCK_DURATION));
+    }
+    
+    return OperationResult::Success();
+}
+
+/**
+ * @brief 验证账户余额是否足够
+ * @param cardNumber 卡号
+ * @param amount 需要的金额
+ * @return 操作结果，如果余额不足则返回失败
+ */
+OperationResult AccountValidator::validateSufficientBalance(const QString& cardNumber, double amount) const
+{
+    // 首先验证账户是否存在
+    OperationResult existResult = validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
+    }
+    
+    // 获取账户信息
+    std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
+    const Account& account = accountOpt.value(); // 前面已验证账户存在
+    
+    // 检查账户余额是否足够
+    if (amount > account.balance) {
+        return OperationResult::Failure("余额不足");
+    }
+    
+    return OperationResult::Success();
+}
+
+/**
+ * @brief 验证取款限额
+ * @param cardNumber 卡号
+ * @param amount 取款金额
+ * @return 操作结果，如果超过限额则返回失败
+ */
+OperationResult AccountValidator::validateWithdrawLimit(const QString& cardNumber, double amount) const
+{
+    // 首先验证账户是否存在
+    OperationResult existResult = validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
+    }
+    
+    // 获取账户信息
+    std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
+    const Account& account = accountOpt.value(); // 前面已验证账户存在
+    
+    // 检查取款金额是否超过取款限额
+    if (amount > account.withdrawLimit) {
+        return OperationResult::Failure(QString("超出单次取款限额 %1").arg(account.withdrawLimit));
+    }
+    
+    return OperationResult::Success();
+}
+
+/**
+ * @brief 验证金额是否为100的倍数
+ * @param amount 金额
+ * @param operationType 操作类型(如"取款"、"存款")
+ * @return 操作结果，如果金额不是100的倍数则返回失败
+ */
+OperationResult AccountValidator::validateAmountMultipleOf100(double amount, const QString& operationType) const
+{
+    // 验证金额是否为正数
+    if (amount <= 0) {
+        return OperationResult::Failure(operationType + "金额必须为正数");
+    }
+    
+    // 检查金额是否为100的倍数
+    if (std::fmod(amount, 100) != 0) {
+        return OperationResult::Failure(operationType + "金额必须为100的倍数");
+    }
+    
+    return OperationResult::Success();
+}
+
+/**
  * @brief 验证取款操作
  * @param cardNumber 卡号
  * @param amount 取款金额
@@ -129,42 +252,34 @@ OperationResult AccountValidator::validateAdminLogin(const QString& cardNumber, 
  */
 OperationResult AccountValidator::validateWithdrawal(const QString& cardNumber, double amount) const
 {
-    // 验证卡号
-    if (cardNumber.isEmpty()) {
-        return OperationResult::Failure("卡号不能为空");
+    // 验证金额是否为100的倍数
+    OperationResult amountResult = validateAmountMultipleOf100(amount, "取款");
+    if (!amountResult.success) {
+        return amountResult;
     }
     
-    // 验证金额
-    if (amount <= 0) {
-        return OperationResult::Failure("取款金额必须为正数");
+    // 验证账户是否存在
+    OperationResult existResult = validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
     }
     
-    // 检查金额是否为100的倍数
-    if (std::fmod(amount, 100) != 0) {
-        return OperationResult::Failure("取款金额必须为100的倍数");
+    // 验证账户是否锁定
+    OperationResult lockResult = validateAccountNotLocked(cardNumber);
+    if (!lockResult.success) {
+        return lockResult;
     }
     
-    // 查找账户
-    std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    if (!accountOpt) {
-        return OperationResult::Failure("账户不存在");
+    // 验证取款限额
+    OperationResult limitResult = validateWithdrawLimit(cardNumber, amount);
+    if (!limitResult.success) {
+        return limitResult;
     }
     
-    const Account& account = accountOpt.value();
-    
-    // 检查账户是否被锁定
-    if (account.isLocked) {
-        return OperationResult::Failure("账户已锁定");
-    }
-    
-    // 检查取款金额是否超过取款限额
-    if (amount > account.withdrawLimit) {
-        return OperationResult::Failure(QString("超出单次取款限额 %1").arg(account.withdrawLimit));
-    }
-    
-    // 检查账户余额是否足够
-    if (amount > account.balance) {
-        return OperationResult::Failure("余额不足");
+    // 验证余额是否足够
+    OperationResult balanceResult = validateSufficientBalance(cardNumber, amount);
+    if (!balanceResult.success) {
+        return balanceResult;
     }
     
     return OperationResult::Success();
@@ -178,32 +293,22 @@ OperationResult AccountValidator::validateWithdrawal(const QString& cardNumber, 
  */
 OperationResult AccountValidator::validateDeposit(const QString& cardNumber, double amount) const
 {
-    // 验证卡号
-    if (cardNumber.isEmpty()) {
-        return OperationResult::Failure("卡号不能为空");
+    // 验证金额是否为100的倍数
+    OperationResult amountResult = validateAmountMultipleOf100(amount, "存款");
+    if (!amountResult.success) {
+        return amountResult;
     }
     
-    // 验证金额
-    if (amount <= 0) {
-        return OperationResult::Failure("存款金额必须为正数");
+    // 验证账户是否存在
+    OperationResult existResult = validateAccountExists(cardNumber);
+    if (!existResult.success) {
+        return existResult;
     }
     
-    // 检查金额是否为100的倍数
-    if (std::fmod(amount, 100) != 0) {
-        return OperationResult::Failure("存款金额必须为100的倍数");
-    }
-    
-    // 查找账户
-    std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
-    if (!accountOpt) {
-        return OperationResult::Failure("账户不存在");
-    }
-    
-    const Account& account = accountOpt.value();
-    
-    // 检查账户是否被锁定
-    if (account.isLocked) {
-        return OperationResult::Failure("账户已锁定");
+    // 验证账户是否锁定
+    OperationResult lockResult = validateAccountNotLocked(cardNumber);
+    if (!lockResult.success) {
+        return lockResult;
     }
     
     // 检查存款金额是否超过上限
@@ -226,54 +331,44 @@ OperationResult AccountValidator::validateTransfer(const QString& fromCardNumber
                                                   const QString& toCardNumber, 
                                                   double amount) const
 {
-    // 验证卡号
-    if (fromCardNumber.isEmpty()) {
-        return OperationResult::Failure("源卡号不能为空");
-    }
-    
-    if (toCardNumber.isEmpty()) {
-        return OperationResult::Failure("目标卡号不能为空");
-    }
-    
     // 验证源卡号和目标卡号不能相同
     if (fromCardNumber == toCardNumber) {
         return OperationResult::Failure("源卡号和目标卡号不能相同");
     }
     
-    // 验证金额
+    // 验证金额是否为正数
     if (amount <= 0) {
         return OperationResult::Failure("转账金额必须为正数");
     }
     
-    // 查找源账户
-    std::optional<Account> fromAccountOpt = m_repository->findByCardNumber(fromCardNumber);
-    if (!fromAccountOpt) {
-        return OperationResult::Failure("源账户不存在");
+    // 验证源账户是否存在
+    OperationResult fromExistResult = validateAccountExists(fromCardNumber);
+    if (!fromExistResult.success) {
+        return fromExistResult;
     }
     
-    const Account& fromAccount = fromAccountOpt.value();
-    
-    // 检查源账户是否被锁定
-    if (fromAccount.isLocked) {
-        return OperationResult::Failure("源账户已锁定");
+    // 验证源账户是否锁定
+    OperationResult fromLockResult = validateAccountNotLocked(fromCardNumber);
+    if (!fromLockResult.success) {
+        return fromLockResult;
     }
     
-    // 查找目标账户
-    std::optional<Account> toAccountOpt = m_repository->findByCardNumber(toCardNumber);
-    if (!toAccountOpt) {
-        return OperationResult::Failure("目标账户不存在");
+    // 验证目标账户是否存在
+    OperationResult toExistResult = validateAccountExists(toCardNumber);
+    if (!toExistResult.success) {
+        return toExistResult;
     }
     
-    const Account& toAccount = toAccountOpt.value();
-    
-    // 检查目标账户是否被锁定
-    if (toAccount.isLocked) {
-        return OperationResult::Failure("目标账户已锁定");
+    // 验证目标账户是否锁定
+    OperationResult toLockResult = validateAccountNotLocked(toCardNumber);
+    if (!toLockResult.success) {
+        return toLockResult;
     }
     
-    // 检查源账户余额是否足够
-    if (amount > fromAccount.balance) {
-        return OperationResult::Failure("余额不足");
+    // 验证源账户余额是否足够
+    OperationResult balanceResult = validateSufficientBalance(fromCardNumber, amount);
+    if (!balanceResult.success) {
+        return balanceResult;
     }
     
     // 检查转账金额是否超过单次限额

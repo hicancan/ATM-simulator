@@ -102,6 +102,34 @@ public:
     );
 
 private:
+    /**
+     * @brief 通用打印回单方法
+     *
+     * 调用 PrinterModel 生成回单的 HTML 内容，并触发打印。此方法统一处理所有类型的回单打印。
+     *
+     * @param bankName 银行名称
+     * @param cardNumber 卡号
+     * @param holderName 持卡人姓名
+     * @param transactionType 交易类型描述
+     * @param amount 交易金额
+     * @param balanceAfter 交易后余额
+     * @param targetCardNumber 目标卡号（转账时使用）
+     * @param targetCardHolder 目标持卡人姓名（转账时使用）
+     * @param transactionId 交易编号
+     * @return 如果打印成功返回 true，否则返回 false
+     */
+    bool printReceipt(
+        const QString &bankName,
+        const QString &cardNumber,
+        const QString &holderName,
+        const QString &transactionType,
+        double amount,
+        double balanceAfter,
+        const QString &targetCardNumber,
+        const QString &targetCardHolder,
+        const QString &transactionId
+    );
+
     //!< PrinterModel 实例，用于生成回单内容和执行实际打印
     PrinterModel m_printerModel;
 };

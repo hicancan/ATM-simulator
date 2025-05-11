@@ -41,15 +41,8 @@ bool PrinterViewModel::printDepositReceipt(
     double balanceAfter,
     const QString &transactionId)
 {
-    // 记录打印请求日志
-    qDebug() << "打印存款回单"
-             << "卡号:" << cardNumber
-             << "持卡人:" << holderName
-             << "金额:" << amount
-             << "余额:" << balanceAfter;
-
-    // 调用 PrinterModel 生成回单的 HTML 内容
-    QString htmlContent = m_printerModel.generateReceiptHtml(
+    // 调用通用打印方法
+    return printReceipt(
         bankName,
         cardNumber,
         holderName,
@@ -58,12 +51,8 @@ bool PrinterViewModel::printDepositReceipt(
         balanceAfter,
         QString(), // 存款无需目标卡号
         QString(), // 存款无需目标持卡人
-        QDateTime::currentDateTime(), // 使用当前时间作为交易时间
-        transactionId // 传递交易 ID
+        transactionId
     );
-
-    // 调用 PrinterModel 打印生成的 HTML 内容
-    return m_printerModel.printReceipt(htmlContent);
 }
 
 /**
@@ -87,15 +76,8 @@ bool PrinterViewModel::printWithdrawalReceipt(
     double balanceAfter,
     const QString &transactionId)
 {
-    // 记录打印请求日志
-    qDebug() << "打印取款回单"
-             << "卡号:" << cardNumber
-             << "持卡人:" << holderName
-             << "金额:" << amount
-             << "余额:" << balanceAfter;
-
-    // 调用 PrinterModel 生成回单的 HTML 内容
-    QString htmlContent = m_printerModel.generateReceiptHtml(
+    // 调用通用打印方法
+    return printReceipt(
         bankName,
         cardNumber,
         holderName,
@@ -104,12 +86,8 @@ bool PrinterViewModel::printWithdrawalReceipt(
         balanceAfter,
         QString(), // 取款无需目标卡号
         QString(), // 取款无需目标持卡人
-        QDateTime::currentDateTime(), // 使用当前时间作为交易时间
-        transactionId // 传递交易 ID
+        transactionId
     );
-
-    // 调用 PrinterModel 打印生成的 HTML 内容
-    return m_printerModel.printReceipt(htmlContent);
 }
 
 /**
@@ -137,25 +115,69 @@ bool PrinterViewModel::printTransferReceipt(
     const QString &targetCardHolder,
     const QString &transactionId)
 {
-    // 记录打印请求日志
-    qDebug() << "打印转账回单"
-             << "卡号:" << cardNumber
-             << "持卡人:" << holderName
-             << "金额:" << amount
-             << "余额:" << balanceAfter
-             << "目标卡号:" << targetCardNumber
-             << "目标持卡人:" << targetCardHolder;
-
-    // 调用 PrinterModel 生成回单的 HTML 内容
-    QString htmlContent = m_printerModel.generateReceiptHtml(
+    // 调用通用打印方法
+    return printReceipt(
         bankName,
         cardNumber,
         holderName,
         "转账", // 交易类型描述
         amount,
         balanceAfter,
-        targetCardNumber, // 包含目标卡号
-        targetCardHolder, // 包含目标持卡人
+        targetCardNumber,
+        targetCardHolder,
+        transactionId
+    );
+}
+
+/**
+ * @brief 通用打印回单方法
+ *
+ * 调用 PrinterModel 生成回单的 HTML 内容，并触发打印。此方法统一处理所有类型的回单打印。
+ *
+ * @param bankName 银行名称
+ * @param cardNumber 卡号
+ * @param holderName 持卡人姓名
+ * @param transactionType 交易类型描述
+ * @param amount 交易金额
+ * @param balanceAfter 交易后余额
+ * @param targetCardNumber 目标卡号（转账时使用）
+ * @param targetCardHolder 目标持卡人姓名（转账时使用）
+ * @param transactionId 交易编号
+ * @return 如果打印成功返回 true，否则返回 false
+ */
+bool PrinterViewModel::printReceipt(
+    const QString &bankName,
+    const QString &cardNumber,
+    const QString &holderName,
+    const QString &transactionType,
+    double amount,
+    double balanceAfter,
+    const QString &targetCardNumber,
+    const QString &targetCardHolder,
+    const QString &transactionId)
+{
+    // 记录打印请求日志
+    qDebug() << "打印" << transactionType << "回单"
+             << "卡号:" << cardNumber
+             << "持卡人:" << holderName
+             << "金额:" << amount
+             << "余额:" << balanceAfter;
+    
+    if (!targetCardNumber.isEmpty()) {
+        qDebug() << "目标卡号:" << targetCardNumber
+                 << "目标持卡人:" << targetCardHolder;
+    }
+
+    // 调用 PrinterModel 生成回单的 HTML 内容
+    QString htmlContent = m_printerModel.generateReceiptHtml(
+        bankName,
+        cardNumber,
+        holderName,
+        transactionType,
+        amount,
+        balanceAfter,
+        targetCardNumber,
+        targetCardHolder,
         QDateTime::currentDateTime(), // 使用当前时间作为交易时间
         transactionId // 传递交易 ID
     );
