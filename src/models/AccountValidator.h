@@ -7,6 +7,8 @@
 #pragma once
 
 #include <QString>
+#include <functional>
+#include <vector>
 #include "IAccountRepository.h"
 #include "OperationResult.h"
 
@@ -176,7 +178,28 @@ public:
      */
     OperationResult validateAmountMultipleOf100(double amount, const QString& operationType) const;
     
+    // 新增方法 - ViewModel层专用的验证接口
+    OperationResult validateLoginInput(const QString& cardNumber, const QString& pin) const;
+    OperationResult validateWithdrawalInput(const QString& cardNumber, double amount) const;
+    OperationResult validateDepositInput(const QString& cardNumber, double amount) const;
+    OperationResult validateTransferInput(const QString& cardNumber, const QString& targetCard, double amount) const;
+    OperationResult validatePinChangeInput(const QString& cardNumber, const QString& currentPin, 
+                                    const QString& newPin, const QString& confirmPin) const;
+    
+    // 通用方法 - 检查是否已登录
+    OperationResult validateLoggedInStatus(bool isLoggedIn, const QString& cardNumber = QString()) const;
+    
 private:
+    // 定义验证函数类型
+    using ValidationFunction = std::function<OperationResult()>;
+    
+    /**
+     * @brief 通用验证方法，按顺序执行多个验证步骤
+     * @param validations 验证函数列表
+     * @return 第一个失败的验证结果，或者全部成功时返回成功结果
+     */
+    OperationResult validateOperation(const std::vector<ValidationFunction>& validations) const;
+    
     //!< 账户存储库接口指针
     IAccountRepository* m_repository;
 }; 

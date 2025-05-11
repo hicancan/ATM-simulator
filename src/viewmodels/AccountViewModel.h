@@ -13,7 +13,6 @@
 #include <QVariantMap>
 #include "../models/AccountModel.h"
 #include "../models/TransactionModel.h" // 包含 TransactionModel 头文件
-#include "../models/AccountValidator.h" // 添加 AccountValidator 头文件
 
 /**
  * @brief 账户视图模型类
@@ -246,8 +245,6 @@ private:
     AccountModel m_accountModel;
     //!< TransactionModel 指针，用于记录交易和预测余额
     TransactionModel *m_transactionModel;
-    //!< AccountValidator 实例，直接处理验证逻辑
-    AccountValidator m_validator;
 
     /**
      * @brief 检查管理员权限
@@ -255,6 +252,14 @@ private:
      * @return 如果当前用户有管理员权限返回true，否则返回false
      */
     bool checkAdminPermission(const QString& errorMsg);
+    
+    /**
+     * @brief 处理操作结果，设置错误信息并发送完成信号
+     * @param result 操作结果
+     * @param successMessage 操作成功时的消息
+     * @return 如果操作成功返回true，否则返回false
+     */
+    bool handleOperationResult(const OperationResult& result, const QString& successMessage);
 
     // --- 私有成员变量 (支持 Q_PROPERTY) ---
     QString m_cardNumber;       //!< 当前登录的账户卡号

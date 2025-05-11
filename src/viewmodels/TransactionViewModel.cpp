@@ -50,7 +50,8 @@ QVariant TransactionViewModel::data(const QModelIndex &index, int role) const
     // 根据请求的角色返回数据
     switch (role) {
         case TypeRole:
-            return static_cast<int>(transaction.type);
+            // 使用转换方法，返回ViewModel层的枚举值
+            return static_cast<int>(convertTransactionType(transaction.type));
         case AmountRole:
             return transaction.amount;
         case BalanceAfterRole:
@@ -205,10 +206,40 @@ QString TransactionViewModel::formatDate(const QDateTime &dateTime) const
  */
 QString TransactionViewModel::getTransactionTypeName(int type) const
 {
-    // 直接调用TransactionModel的方法
-    if (m_transactionModel) {
-        return m_transactionModel->getTransactionTypeName(type);
+    // 直接基于ViewModel专用枚举返回名称，不再依赖Model层枚举
+    switch (static_cast<TransactionViewType>(type)) {
+        case TransactionViewType::Deposit:
+            return "存款";
+        case TransactionViewType::Withdrawal:
+            return "取款";
+        case TransactionViewType::BalanceInquiry:
+            return "余额查询";
+        case TransactionViewType::Transfer:
+            return "转账";
+        case TransactionViewType::Other:
+        default:
+            return "其他";
     }
-    qWarning() << "getTransactionTypeName: TransactionModel未设置";
-    return QString::number(type);
+}
+
+/**
+ * @brief 将Model层交易类型转换为ViewModel层交易类型
+ * @param modelType Model层的交易类型
+ * @return 对应的ViewModel层交易类型
+ */
+TransactionViewModel::TransactionViewType TransactionViewModel::convertTransactionType(TransactionType modelType) const
+{
+    switch (modelType) {
+        case TransactionType::Deposit:
+            return TransactionViewType::Deposit;
+        case TransactionType::Withdrawal:
+            return TransactionViewType::Withdrawal;
+        case TransactionType::BalanceInquiry:
+            return TransactionViewType::BalanceInquiry;
+        case TransactionType::Transfer:
+            return TransactionViewType::Transfer;
+        case TransactionType::Other:
+        default:
+            return TransactionViewType::Other;
+    }
 }

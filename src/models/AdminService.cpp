@@ -384,4 +384,15 @@ void AdminService::logAdminOperation(const QString& adminCardNumber,
             }
         }
     }
+}
+
+/**
+ * @brief 检查管理员权限
+ * @param cardNumber 卡号
+ * @return 操作结果
+ */
+OperationResult AdminService::checkAdminPermission(const QString& cardNumber) const
+{
+    // 验证管理员权限
+    return m_validator->validateAdminOperation(cardNumber);
 } 

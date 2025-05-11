@@ -325,3 +325,14 @@ bool AccountService::isAccountLocked(const QString& cardNumber) const
     // 检查永久锁定和临时锁定
     return account.isLocked || account.isTemporarilyLocked();
 }
+
+/**
+ * @brief 验证目标账户是否有效
+ * @param targetCardNumber 目标卡号
+ * @return 操作结果
+ */
+OperationResult AccountService::validateTargetAccount(const QString& targetCardNumber) const
+{
+    // 使用验证器验证目标账户
+    return m_validator->validateTargetAccount(targetCardNumber);
+}

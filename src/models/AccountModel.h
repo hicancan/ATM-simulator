@@ -265,6 +265,27 @@ public:
      */
     QVariantList getAllAccountsAsVariantList() const;
 
+    /**
+     * @brief 检查管理员权限
+     * @param cardNumber 卡号
+     * @return 操作结果
+     */
+    OperationResult checkAdminPermission(const QString &cardNumber) const;
+
+    /**
+     * @brief 验证目标账户是否有效
+     * @param targetCardNumber 目标卡号
+     * @return 操作结果
+     */
+    OperationResult validateTargetAccount(const QString &targetCardNumber) const;
+
+    /**
+     * @brief 获取目标卡号的持卡人姓名
+     * @param targetCardNumber 目标卡号
+     * @return 持卡人姓名，如果卡号不存在则返回空字符串
+     */
+    QString getTargetCardHolderName(const QString &targetCardNumber) const;
+
 private:
     //!< 账户存储库
     std::unique_ptr<IAccountRepository> m_repository;

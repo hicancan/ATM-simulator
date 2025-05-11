@@ -113,6 +113,13 @@ public:
      */
     bool isAccountLocked(const QString& cardNumber) const;
 
+    /**
+     * @brief 验证目标账户是否有效
+     * @param targetCardNumber 目标卡号
+     * @return 操作结果
+     */
+    OperationResult validateTargetAccount(const QString& targetCardNumber) const;
+
 private:
     //!< 账户存储库
     IAccountRepository* m_repository;

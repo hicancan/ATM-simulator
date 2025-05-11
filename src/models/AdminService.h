@@ -115,6 +115,13 @@ public:
      */
     QVector<Account> getAllAccounts() const;
 
+    /**
+     * @brief 检查管理员权限
+     * @param cardNumber 卡号
+     * @return 操作结果
+     */
+    OperationResult checkAdminPermission(const QString& cardNumber) const;
+
 private:
     /**
      * @brief 记录管理员操作日志

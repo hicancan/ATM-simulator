@@ -27,6 +27,16 @@ class TransactionViewModel : public QAbstractListModel
     Q_PROPERTY(int recentTransactionCount READ recentTransactionCount WRITE setRecentTransactionCount NOTIFY recentTransactionCountChanged)
 
 public:
+    // ViewModel专用的交易类型枚举，与Model层枚举解耦
+    enum TransactionViewType {
+        Deposit = 0,        //!< 存款
+        Withdrawal = 1,     //!< 取款
+        BalanceInquiry = 2, //!< 余额查询
+        Transfer = 3,       //!< 转账
+        Other = 4           //!< 其他
+    };
+    Q_ENUM(TransactionViewType) // 将枚举暴露给 QML
+
     // 模型角色枚举，用于在 QML 中访问数据
     enum TransactionRoles {
         TypeRole = Qt::UserRole + 1, //!< 交易类型角色
@@ -123,6 +133,12 @@ public:
      */
     Q_INVOKABLE QString getTransactionTypeName(int type) const;
 
+    /**
+     * @brief 将Model层交易类型转换为ViewModel层交易类型
+     * @param modelType Model层的交易类型
+     * @return 对应的ViewModel层交易类型
+     */
+    TransactionViewType convertTransactionType(TransactionType modelType) const;
 
 signals:
     // 通知 QML 属性已改变的信号

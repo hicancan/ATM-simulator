@@ -235,3 +235,39 @@ QVariantList AccountModel::getAllAccountsAsVariantList() const
     
     return result;
 }
+
+/**
+ * @brief 检查管理员权限
+ * @param cardNumber 卡号
+ * @return 操作结果
+ */
+OperationResult AccountModel::checkAdminPermission(const QString &cardNumber) const
+{
+    // 直接委托给AdminService处理
+    return m_adminService->checkAdminPermission(cardNumber);
+}
+
+/**
+ * @brief 验证目标账户是否有效
+ * @param targetCardNumber 目标卡号
+ * @return 操作结果
+ */
+OperationResult AccountModel::validateTargetAccount(const QString &targetCardNumber) const
+{
+    // 使用验证器验证目标账户
+    if (m_accountService) {
+        return m_accountService->validateTargetAccount(targetCardNumber);
+    }
+    return OperationResult::Failure("服务不可用");
+}
+
+/**
+ * @brief 获取目标卡号的持卡人姓名
+ * @param targetCardNumber 目标卡号
+ * @return 持卡人姓名，如果卡号不存在则返回空字符串
+ */
+QString AccountModel::getTargetCardHolderName(const QString &targetCardNumber) const
+{
+    std::optional<Account> accountOpt = m_repository->findByCardNumber(targetCardNumber);
+    return accountOpt ? accountOpt.value().holderName : QString();
+}
