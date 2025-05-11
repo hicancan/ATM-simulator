@@ -28,10 +28,11 @@ Account::Account(const QString& cardNumber, const QString& pin, const QString& h
 }
 
 /**
- * @brief 检查账户是否有效
- * @return 如果账户数据有效返回 true
+ * @brief 检查卡号是否有效
+ * @param cardNumber 要验证的卡号
+ * @return 如果卡号格式有效返回 true
  */
-bool Account::isValid() const
+bool Account::isValidCardNumber(const QString& cardNumber)
 {
     // 卡号必须为16位数字
     if (cardNumber.length() != 16) {
@@ -42,6 +43,30 @@ bool Account::isValid() const
         if (!c.isDigit()) {
             return false;
         }
+    }
+    
+    return true;
+}
+
+/**
+ * @brief 检查当前账户卡号是否有效
+ * @return 如果卡号格式有效返回 true
+ */
+bool Account::isValidCardNumber() const
+{
+    // 使用静态方法验证当前账户卡号
+    return isValidCardNumber(cardNumber);
+}
+
+/**
+ * @brief 检查账户是否有效
+ * @return 如果账户数据有效返回 true
+ */
+bool Account::isValid() const
+{
+    // 验证卡号格式
+    if (!isValidCardNumber()) {
+        return false;
     }
     
     // 持卡人姓名不能为空
@@ -62,7 +87,7 @@ bool Account::isValid() const
  * @param pin PIN码
  * @return 如果PIN格式有效返回 true
  */
-bool Account::isValidPin(const QString& pin) const
+bool Account::isValidPin(const QString& pin)
 {
     // PIN必须为4-6位数字
     if (pin.length() < 4 || pin.length() > 6) {

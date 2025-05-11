@@ -457,9 +457,8 @@ OperationResult AccountValidator::validateUpdateAccount(const QString& cardNumbe
  */
 OperationResult AccountValidator::validatePinFormat(const QString& pin) const
 {
-    // 创建临时账户对象来验证PIN格式
-    Account tempAccount;
-    if (!tempAccount.isValidPin(pin)) {
+    // 直接使用Account类的静态方法验证PIN格式
+    if (!Account::isValidPin(pin)) {
         return OperationResult::Failure("PIN码格式无效，必须为4-6位数字");
     }
     
@@ -473,22 +472,9 @@ OperationResult AccountValidator::validatePinFormat(const QString& pin) const
  */
 OperationResult AccountValidator::validateCardNumberFormat(const QString& cardNumber) const
 {
-    // 验证卡号长度为16位
-    if (cardNumber.length() != 16) {
-        return OperationResult::Failure("卡号必须为16位");
-    }
-    
-    // 验证卡号是否为纯数字
-    bool isNumeric = true;
-    for (QChar c : cardNumber) {
-        if (!c.isDigit()) {
-            isNumeric = false;
-            break;
-        }
-    }
-    
-    if (!isNumeric) {
-        return OperationResult::Failure("卡号只能包含数字");
+    // 直接使用Account类的静态方法验证卡号格式
+    if (!Account::isValidCardNumber(cardNumber)) {
+        return OperationResult::Failure("卡号格式无效，必须为16位数字");
     }
     
     return OperationResult::Success();

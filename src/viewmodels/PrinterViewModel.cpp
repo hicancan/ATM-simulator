@@ -62,8 +62,8 @@ bool PrinterViewModel::printDepositReceipt(
         transactionId // 传递交易 ID
     );
 
-    // 调用 PrinterModel 打印生成的 HTML 内容 (第二个参数 true 表示可能显示打印对话框，取决于 Model 实现)
-    return m_printerModel.printReceipt(htmlContent, true);
+    // 调用 PrinterModel 打印生成的 HTML 内容
+    return m_printerModel.printReceipt(htmlContent);
 }
 
 /**
@@ -109,7 +109,7 @@ bool PrinterViewModel::printWithdrawalReceipt(
     );
 
     // 调用 PrinterModel 打印生成的 HTML 内容
-    return m_printerModel.printReceipt(htmlContent, true);
+    return m_printerModel.printReceipt(htmlContent);
 }
 
 /**
@@ -161,5 +161,5 @@ bool PrinterViewModel::printTransferReceipt(
     );
 
     // 调用 PrinterModel 打印生成的 HTML 内容
-    return m_printerModel.printReceipt(htmlContent, true);
+    return m_printerModel.printReceipt(htmlContent);
 }

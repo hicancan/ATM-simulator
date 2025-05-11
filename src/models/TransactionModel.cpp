@@ -42,7 +42,9 @@ TransactionModel::TransactionModel(QObject *parent)
 /**
  * @brief 析构函数
  *
- * 在对象销毁时保存交易记录。
+ * 在对象销毁时保存交易记录，确保不会丢失内存中的未保存交易数据。
+ * 注意：addTransaction()和clearTransactionsForCard()等方法已经会主动保存数据，
+ * 这里作为最后的保障措施，防止意外情况下数据未保存。
  */
 TransactionModel::~TransactionModel()
 {

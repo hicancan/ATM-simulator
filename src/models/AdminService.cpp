@@ -50,9 +50,6 @@ LoginResult AdminService::performAdminLogin(const QString& cardNumber, const QSt
     std::optional<Account> accountOpt = m_repository->findByCardNumber(cardNumber);
     const Account& account = accountOpt.value(); // 验证通过后一定存在
     
-    // 不再记录管理员登录操作
-    // logAdminOperation(cardNumber, "管理员登录", "", "管理员登录成功");
-    
     // 返回成功的登录结果，包含账户信息
     return LoginResult::Success(
         true,  // 管理员登录成功，isAdmin 必定为 true

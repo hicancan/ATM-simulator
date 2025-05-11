@@ -78,14 +78,11 @@ void PrinterModel::initializePrinter()
  * 将生成的 HTML 内容通过 QPrinter 转换为 PDF 并打开。
  *
  * @param htmlContent 回单的 HTML 内容
- * @param showPrintDialog 是否显示打印对话框 (在此实现中未使用，直接生成 PDF 并打开)
  * @return 如果打印成功返回 true，否则返回 false
  * @note 此实现直接生成 PDF 并打开，不弹出打印对话框。
  */
-bool PrinterModel::printReceipt(const QString &htmlContent, bool showPrintDialog)
+bool PrinterModel::printReceipt(const QString &htmlContent)
 {
-    Q_UNUSED(showPrintDialog); // 在这个实现中不使用 showPrintDialog 参数
-
     try {
         // 首先确定文档保存路径（例如：用户的文档目录）
         QString documentsPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);

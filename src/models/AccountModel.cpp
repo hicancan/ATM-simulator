@@ -9,8 +9,6 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QDebug>
-#include <numeric> // 用于 std::accumulate
-#include <algorithm> // 用于 std::min
 
 /**
  * @brief 构造函数

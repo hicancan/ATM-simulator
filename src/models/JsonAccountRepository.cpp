@@ -47,6 +47,10 @@ JsonAccountRepository::JsonAccountRepository(const QString& dataPath, const QStr
 
 /**
  * @brief 析构函数
+ *
+ * 在对象销毁时保存账户数据，确保不会丢失内存中的更改。
+ * 注意：大多数操作如saveAccount()和deleteAccount()已经主动调用了saveAccounts()，
+ * 这里作为最后的保障措施，防止意外情况下数据未保存。
  */
 JsonAccountRepository::~JsonAccountRepository()
 {

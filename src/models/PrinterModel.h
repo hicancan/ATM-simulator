@@ -43,10 +43,9 @@ public:
      * 将生成的 HTML 内容发送到打印机。
      *
      * @param htmlContent 回单的 HTML 内容
-     * @param showPrintDialog 是否显示打印对话框 (默认为 true)
      * @return 如果打印成功返回 true，否则返回 false
      */
-    bool printReceipt(const QString &htmlContent, bool showPrintDialog = true);
+    bool printReceipt(const QString &htmlContent);
 
     /**
      * @brief 生成回单的 HTML 内容

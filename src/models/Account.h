@@ -53,11 +53,24 @@ public:
     bool isValid() const;
 
     /**
+     * @brief 检查卡号是否有效
+     * @param cardNumber 要验证的卡号
+     * @return 如果卡号格式有效返回 true
+     */
+    static bool isValidCardNumber(const QString& cardNumber);
+    
+    /**
+     * @brief 检查当前账户卡号是否有效
+     * @return 如果卡号格式有效返回 true
+     */
+    bool isValidCardNumber() const;
+
+    /**
      * @brief 检查PIN是否有效
      * @param pin PIN码
      * @return 如果PIN格式有效返回 true
      */
-    bool isValidPin(const QString& pin) const;
+    static bool isValidPin(const QString& pin);
     
     /**
      * @brief 检查PIN是否匹配
