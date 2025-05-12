@@ -240,17 +240,17 @@ void JsonAccountRepository::addAccount(const Account& account)
 void JsonAccountRepository::initializeTestAccounts()
 {
     // 添加普通测试账户（使用构造函数将自动哈希PIN）
-    Account account1("1234567890123456", "1234", "张三", 5000.0, 2000.0, false, false);
+    Account account1("1234567890123456", "1234", "张三", 50000.0, 20000.0, false, false);
     addAccount(account1);
 
-    Account account2("2345678901234567", "2345", "李四", 10000.0, 3000.0, false, false);
+    Account account2("2345678901234567", "2345", "李四", 100000.0, 30000.0, false, false);
     addAccount(account2);
 
-    Account account3("3456789012345678", "3456", "王五", 7500.0, 2500.0, true, false);
+    Account account3("3456789012345678", "3456", "王五", 75000.0, 25000.0, true, false);
     addAccount(account3);
 
     // 添加管理员账户
-    Account adminAccount("9999888877776666", "8888", "管理员", 50000.0, 10000.0, false, true);
+    Account adminAccount("9999888877776666", "8888", "管理员", 500000.0, 100000.0, false, true);
     addAccount(adminAccount);
 
     qDebug() << "测试账户初始化完成，共" << m_accounts.size() << "个账户";

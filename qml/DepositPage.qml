@@ -82,7 +82,7 @@ Page {
                 rowSpacing: 15
                 
                 Repeater {
-                    model: [100, 500, 1000, 2000, 5000, 10000]
+                    model: [100, 500, 1000, 5000, 10000, 50000]
                     
                     Button {
                         text: "￥" + modelData
@@ -118,7 +118,7 @@ Page {
                 NumericKeypad {
                     id: keypad
                     isAmount: true
-                    maxValue: 50000 // Maximum deposit amount
+                    maxValue: 999999 // Maximum deposit amount
                     Layout.alignment: Qt.AlignHCenter
                 }
                 

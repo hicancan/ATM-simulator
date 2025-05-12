@@ -224,27 +224,6 @@ OperationResult AccountValidator::validateWithdrawLimit(const QString& cardNumbe
 }
 
 /**
- * @brief 验证金额是否为100的倍数
- * @param amount 金额
- * @param operationType 操作类型(如"取款"、"存款")
- * @return 操作结果，如果金额不是100的倍数则返回失败
- */
-OperationResult AccountValidator::validateAmountMultipleOf100(double amount, const QString& operationType) const
-{
-    // 验证金额是否为正数
-    if (amount <= 0) {
-        return OperationResult::Failure(operationType + "金额必须为正数");
-    }
-    
-    // 检查金额是否为100的倍数
-    if (std::fmod(amount, 100) != 0) {
-        return OperationResult::Failure(operationType + "金额必须为100的倍数");
-    }
-    
-    return OperationResult::Success();
-}
-
-/**
  * @brief 通用验证方法，按顺序执行多个验证步骤
  * @param validations 验证函数列表
  * @return 第一个失败的验证结果，或者全部成功时返回成功结果
@@ -283,10 +262,6 @@ OperationResult AccountValidator::validateWithdrawal(const QString& cardNumber, 
 
     // 使用通用验证方法，构建验证步骤序列
     return validateOperation({
-        // 验证金额是否为100的倍数
-        [this, amount]() {
-            return validateAmountMultipleOf100(amount, "取款");
-        },
         // 验证账户是否存在
         [this, cardNumber]() {
             return validateAccountExists(cardNumber);
@@ -325,10 +300,6 @@ OperationResult AccountValidator::validateDeposit(const QString& cardNumber, dou
 
     // 使用通用验证方法，构建验证步骤序列
     return validateOperation({
-        // 验证金额是否为100的倍数
-        [this, amount]() {
-            return validateAmountMultipleOf100(amount, "存款");
-        },
         // 验证账户是否存在
         [this, cardNumber]() {
             return validateAccountExists(cardNumber);
@@ -337,9 +308,9 @@ OperationResult AccountValidator::validateDeposit(const QString& cardNumber, dou
         [this, cardNumber]() {
             return validateAccountNotLocked(cardNumber);
         },
-        // 检查存款金额是否超过上限
+        // 检查存款金额是否超过上限 - 增加上限到100万
         [amount]() {
-            const double maxDeposit = 50000.0; // 单次存款上限
+            const double maxDeposit = 1000000.0; // 单次存款上限提高到100万
             if (amount > maxDeposit) {
                 return OperationResult::Failure(QString("单次存款不能超过 %1").arg(maxDeposit));
             }
@@ -401,9 +372,9 @@ OperationResult AccountValidator::validateTransfer(const QString& fromCardNumber
         [this, fromCardNumber, amount]() {
             return validateSufficientBalance(fromCardNumber, amount);
         },
-        // 检查转账金额是否超过单次限额
+        // 检查转账金额是否超过单次限额 - 增加上限到100万
         [amount]() {
-            const double maxTransfer = 50000.0; // 单次转账上限
+            const double maxTransfer = 1000000.0; // 单次转账上限提高到100万
             if (amount > maxTransfer) {
                 return OperationResult::Failure(QString("单次转账不能超过 %1").arg(maxTransfer));
             }

@@ -9,7 +9,7 @@ ColumnLayout {
     property alias displayText: display.text
     property bool clearOnNextKey: false
     property bool isAmount: false
-    property real maxValue: 10000.0
+    property real maxValue: 999999.0
     
     signal accepted()
     signal canceled()
@@ -278,7 +278,7 @@ ColumnLayout {
                 return
             }
             
-            // Calculate new value for validation
+            // Calculate new value for validation - only check maximum value
             let newText = display.text + number
             let newValue = parseFloat(newText)
             

@@ -87,7 +87,7 @@ Page {
                 rowSpacing: 15
                 
                 Repeater {
-                    model: [100, 500, 1000, 2000, 3000, 5000]
+                    model: [100, 500, 1000, 5000, 10000, 20000]
                     
                     Button {
                         text: "￥" + modelData
@@ -125,8 +125,8 @@ Page {
                 NumericKeypad {
                     id: keypad
                     isAmount: true
-                    maxValue: Math.min(controller.accountViewModel.withdrawLimit, 
-                                      controller.accountViewModel.balance)
+                    maxValue: Math.min(999999, Math.min(controller.accountViewModel.withdrawLimit, 
+                                      controller.accountViewModel.balance))
                     Layout.alignment: Qt.AlignHCenter
                 }
                 

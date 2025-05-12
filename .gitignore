@@ -77,3 +77,13 @@ __pycache__/
 Thumbs.db
 *.swp
 *~
+
+# 其他文件
+*.docx
+*.doc
+*.pdf
+*.txt
+*.xls
+*.xlsx
+*.ppt
+*.pptx
