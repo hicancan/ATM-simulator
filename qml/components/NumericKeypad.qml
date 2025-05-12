@@ -36,8 +36,8 @@ ColumnLayout {
         activeFocusOnTab: false
         focus: false
         
-        // Fixed width to avoid layout issues
-        Layout.preferredWidth: 243 // 3 buttons at 75px wide + 2 spaces at 8px each
+        // 增加显示宽度以支持更多位数
+        Layout.preferredWidth: 280 // 增加宽度以支持更长的金额数字
     }
     
     // 直接定义完整的布局，不使用Grid
@@ -269,28 +269,32 @@ ColumnLayout {
             // Handle special case for first digit after decimal point
             if (display.text.endsWith(".") && display.text.length > 0) {
                 display.text = display.text + number
+                console.log("添加小数点后的数字: " + display.text)
                 return
             }
             
             // Check if there are already 2 digits after decimal point
             const decimalIndex = display.text.indexOf(".")
             if (decimalIndex !== -1 && (display.text.length - decimalIndex > 2)) {
+                console.log("小数点后已有两位，不再添加: " + display.text)
                 return
             }
             
-            // Calculate new value for validation - only check maximum value
+            // 取消金额上限的检查，允许输入任意金额
             let newText = display.text + number
-            let newValue = parseFloat(newText)
+            
+            // 增加调试输出
+            console.log("尝试添加数字: " + number + " 到 " + display.text + " 结果=" + newText)
             
             // Don't allow more than 2 decimal places
             if (decimalIndex !== -1 && (newText.length - decimalIndex > 3)) {
+                console.log("小数位数超过限制")
                 return
             }
             
-            // Check against maximum value
-            if (!isNaN(newValue) && newValue <= maxValue) {
-                display.text = newText
-            }
+            // 直接设置文本，不再检查最大值
+            display.text = newText
+            console.log("数字已添加，当前显示: " + display.text)
         } else {
             display.text = display.text + number
         }

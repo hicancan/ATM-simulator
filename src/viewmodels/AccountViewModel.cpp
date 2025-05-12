@@ -245,6 +245,11 @@ bool AccountViewModel::withdraw(double amount)
 {
     clearError();
 
+    if (!m_isLoggedIn) {
+        setErrorMessage("请先登录");
+        return false;
+    }
+
     // 直接调用Model层的方法，由Model层统一处理所有验证
     OperationResult withdrawResult = m_accountModel.withdrawAmount(m_cardNumber, amount);
     if (withdrawResult.success) {
@@ -266,6 +271,11 @@ bool AccountViewModel::withdraw(double amount)
 bool AccountViewModel::deposit(double amount)
 {
     clearError();
+
+    if (!m_isLoggedIn) {
+        setErrorMessage("请先登录");
+        return false;
+    }
 
     // 直接调用Model层的方法，由Model层统一处理所有验证
     OperationResult depositResult = m_accountModel.depositAmount(m_cardNumber, amount);
@@ -289,6 +299,11 @@ bool AccountViewModel::deposit(double amount)
 bool AccountViewModel::transfer(const QString &targetCard, double amount)
 {
     clearError();
+
+    if (!m_isLoggedIn) {
+        setErrorMessage("请先登录");
+        return false;
+    }
 
     // 直接调用Model层的方法，由Model层统一处理所有验证
     OperationResult transferResult = m_accountModel.transferAmount(m_cardNumber, targetCard, amount);

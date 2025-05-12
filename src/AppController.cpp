@@ -135,21 +135,24 @@ QString AppController::currentPage() const
  */
 void AppController::switchToPage(const QString &pageName)
 {
-    // 只有当页面名称不同时才进行切换
+    // Only switch when page name is different
     if (m_currentPage != pageName) {
-        // 如果要切换到交易历史页面，确保 TransactionViewModel 使用正确的卡号
+        // Clear any error messages when switching pages
+        m_accountViewModel->clearError();
+        
+        // If switching to transaction history page, ensure TransactionViewModel uses correct card number
         if (pageName == "TransactionHistoryPage" && m_accountViewModel->isLoggedIn()) {
             QString cardNumber = m_accountViewModel->cardNumber();
-            // 更新 TransactionViewModel 的卡号，这会触发其内部刷新
-            // 这里先设置为空再重新设置，以确保即使卡号相同也能强制刷新列表
+            // Update TransactionViewModel's card number, which will trigger its internal refresh
+            // First set to empty then reset to ensure force refresh even if card number is the same
             m_transactionViewModel->setCardNumber("");
             m_transactionViewModel->setCardNumber(cardNumber);
-             qDebug() << "切换到交易历史页面，已设置卡号:" << cardNumber;
+             qDebug() << "Switching to transaction history page, card number set:" << cardNumber;
         }
 
-        m_currentPage = pageName; // 更新当前页面状态
-        emit currentPageChanged(); // 发出信号通知 UI
-        qDebug() << "切换到页面:" << pageName;
+        m_currentPage = pageName; // Update current page state
+        emit currentPageChanged(); // Emit signal to notify UI
+        qDebug() << "Switching to page:" << pageName;
     }
 }
 

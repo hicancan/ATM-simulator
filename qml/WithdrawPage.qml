@@ -7,6 +7,12 @@ import "components"
 Page {
     id: page
     
+    // Clear error message when page is loaded
+    Component.onCompleted: {
+        controller.accountViewModel.clearError()
+        keypad.clear()
+    }
+    
     // 添加ReceiptPrinter组件
     ReceiptPrinter {
         id: receiptPrinter
@@ -125,8 +131,8 @@ Page {
                 NumericKeypad {
                     id: keypad
                     isAmount: true
-                    maxValue: Math.min(999999, Math.min(controller.accountViewModel.withdrawLimit, 
-                                      controller.accountViewModel.balance))
+                    // 不再限制最大金额
+                    maxValue: Number.MAX_VALUE // 设置为极大值，实际上不再使用
                     Layout.alignment: Qt.AlignHCenter
                 }
                 
@@ -150,6 +156,11 @@ Page {
                                     resultDialog.withdrewAmount = amount
                                     resultDialog.success = true
                                     keypad.clear()
+                                    resultDialog.open()
+                                } else {
+                                    // 如果取款失败，显示结果对话框并传递失败状态
+                                    resultDialog.withdrewAmount = amount
+                                    resultDialog.success = false
                                     resultDialog.open()
                                 }
                             }
@@ -177,6 +188,19 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
                 font.pixelSize: 16
                 Layout.bottomMargin: 15
+                
+                // 添加背景以使错误消息更加明显
+                background: Rectangle {
+                    visible: errorLabel.text !== ""
+                    color: "#44FF0000"  // 半透明红色背景
+                    radius: 5
+                    border.color: "red"
+                    border.width: 1
+                    implicitWidth: errorLabel.implicitWidth + 20
+                    implicitHeight: errorLabel.implicitHeight + 10
+                }
+                
+                padding: 5  // 为文本添加内边距
             }
             
             // 底部空白，确保滚动时有足够的空间
@@ -199,13 +223,19 @@ Page {
         property bool success: false
         property real withdrewAmount: 0
         
+        // Clear error message when dialog is closed
+        onClosed: {
+            controller.accountViewModel.clearError()
+            keypad.clear()
+        }
+        
         contentItem: ColumnLayout {
             spacing: 20
             
             Label {
                 text: resultDialog.success ? 
                     "您已成功取款：￥" + resultDialog.withdrewAmount.toFixed(2) : 
-                    "交易失败，请重试"
+                    "取款失败：" + controller.accountViewModel.errorMessage
                 font.pixelSize: 16
                 Layout.fillWidth: true
                 wrapMode: Label.Wrap

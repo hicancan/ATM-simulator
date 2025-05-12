@@ -191,7 +191,11 @@ OperationResult AccountValidator::validateSufficientBalance(const QString& cardN
     
     // 检查账户余额是否足够
     if (amount > account.balance) {
-        return OperationResult::Failure("余额不足");
+        return OperationResult::Failure(
+            QString("余额不足：您的当前余额为 %1，但交易需要 %2")
+            .arg(account.balance)
+            .arg(amount)
+        );
     }
     
     return OperationResult::Success();
@@ -307,14 +311,6 @@ OperationResult AccountValidator::validateDeposit(const QString& cardNumber, dou
         // 验证账户是否锁定
         [this, cardNumber]() {
             return validateAccountNotLocked(cardNumber);
-        },
-        // 检查存款金额是否超过上限 - 增加上限到100万
-        [amount]() {
-            const double maxDeposit = 1000000.0; // 单次存款上限提高到100万
-            if (amount > maxDeposit) {
-                return OperationResult::Failure(QString("单次存款不能超过 %1").arg(maxDeposit));
-            }
-            return OperationResult::Success();
         }
     });
 }
@@ -371,14 +367,6 @@ OperationResult AccountValidator::validateTransfer(const QString& fromCardNumber
         // 验证源账户余额是否足够
         [this, fromCardNumber, amount]() {
             return validateSufficientBalance(fromCardNumber, amount);
-        },
-        // 检查转账金额是否超过单次限额 - 增加上限到100万
-        [amount]() {
-            const double maxTransfer = 1000000.0; // 单次转账上限提高到100万
-            if (amount > maxTransfer) {
-                return OperationResult::Failure(QString("单次转账不能超过 %1").arg(maxTransfer));
-            }
-            return OperationResult::Success();
         }
     });
 }

@@ -7,6 +7,13 @@ import "components"
 Page {
     id: page
     
+    // Clear error message when page is loaded
+    Component.onCompleted: {
+        controller.accountViewModel.clearError()
+        keypad.clear()
+        targetCardField.text = ""
+    }
+    
     // 添加ReceiptPrinter组件
     ReceiptPrinter {
         id: receiptPrinter
@@ -174,7 +181,8 @@ Page {
                 NumericKeypad {
                     id: keypad
                     isAmount: true
-                    maxValue: Math.min(999999, controller.accountViewModel.balance)
+                    // 不再限制最大金额
+                    maxValue: Number.MAX_VALUE // 设置为极大值，实际上不再使用
                     Layout.alignment: Qt.AlignHCenter
                 }
                 
@@ -216,6 +224,19 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
                 font.pixelSize: 16
                 Layout.bottomMargin: 15
+                
+                // 添加背景以使错误消息更加明显
+                background: Rectangle {
+                    visible: errorLabel.text !== ""
+                    color: "#44FF0000"  // 半透明红色背景
+                    radius: 5
+                    border.color: "red"
+                    border.width: 1
+                    implicitWidth: errorLabel.implicitWidth + 20
+                    implicitHeight: errorLabel.implicitHeight + 10
+                }
+                
+                padding: 5  // 为文本添加内边距
             }
             
             // 底部空白，确保滚动时有足够的空间
@@ -238,6 +259,11 @@ Page {
         property string targetCard: ""
         property real transferAmount: 0
         
+        // Clear error message when dialog is closed
+        onClosed: {
+            controller.accountViewModel.clearError()
+        }
+        
         contentItem: ColumnLayout {
             spacing: 20
             
@@ -248,6 +274,33 @@ Page {
                 font.pixelSize: 16
                 Layout.fillWidth: true
                 wrapMode: Label.Wrap
+            }
+            
+            // 添加余额警告提示
+            Label {
+                text: "当前账户余额: ￥" + controller.accountViewModel.balance.toFixed(2)
+                font.pixelSize: 14
+                Layout.fillWidth: true
+            }
+            
+            // 警告标签 - 如果转账金额大于余额则显示
+            Label {
+                text: "警告: 转账金额超出您的当前余额!"
+                font.pixelSize: 14
+                font.bold: true
+                color: "red"
+                visible: confirmDialog.transferAmount > controller.accountViewModel.balance
+                Layout.fillWidth: true
+                
+                background: Rectangle {
+                    visible: confirmDialog.transferAmount > controller.accountViewModel.balance
+                    color: "#22FF0000"  // 半透明红色背景
+                    radius: 3
+                    implicitWidth: parent.width
+                    implicitHeight: parent.height + 6
+                }
+                
+                padding: 3
             }
             
             Label {
@@ -278,6 +331,12 @@ Page {
                 keypad.clear()
                 targetCardField.text = ""
                 resultDialog.open()
+            } else {
+                // 如果转账失败，显示结果对话框并传递失败状态
+                resultDialog.transferAmount = transferAmount
+                resultDialog.targetCard = targetCard
+                resultDialog.success = false
+                resultDialog.open()
             }
         }
     }
@@ -295,6 +354,12 @@ Page {
         property real transferAmount: 0
         property string targetCard: ""
         
+        // Clear error message when dialog is closed
+        onClosed: {
+            controller.accountViewModel.clearError()
+            keypad.clear()
+        }
+        
         contentItem: ColumnLayout {
             spacing: 20
             
@@ -302,7 +367,7 @@ Page {
                 text: resultDialog.success ? 
                     "已成功转账：￥" + resultDialog.transferAmount.toFixed(2) + 
                     " 至 " + controller.accountViewModel.getTargetCardHolderName(resultDialog.targetCard) : 
-                    "转账失败，请重试"
+                    "转账失败：" + controller.accountViewModel.errorMessage
                 font.pixelSize: 16
                 Layout.fillWidth: true
                 wrapMode: Label.Wrap
